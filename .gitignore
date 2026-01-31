@@ -34,3 +34,4 @@ src-tauri/gen/android/app/build/
 src-tauri/gen/android/.gradle/
 src-tauri/gen/apple/build/
 src-tauri/gen/apple/DerivedData/
+*.ps1
