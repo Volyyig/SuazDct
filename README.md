@@ -1,7 +1,43 @@
-# Tauri + Vue + TypeScript
+# SuazDct
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+基于 `uniaz` 算法的汉字编码工具。将中文字符映射为 4 位字母组合。
 
-## Recommended IDE Setup
+## 功能
 
-- [VS Code](https://code.visualstudio.com/) + [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- **单字交互**：大字输入即编码，密文输入即解码。
+- **字句处理**：支持长文本加解密，解密时自动按 4 字符分组。
+- **多端适配**：支持桌面端和移动端。
+
+## 开发
+
+基于 Tauri v2 + Vue 3 + Rust。
+
+### 环境要求
+- Node.js
+- Rust
+
+### 运行
+
+安装依赖：
+```bash
+pnpm install
+```
+
+启动开发服务器：
+```bash
+# 桌面端
+pnpm tauri dev
+
+# Android 端 (需连接设备)
+pnpm tauri android dev
+```
+
+## 使用
+
+1. **单字页**：点击中间大字输入中文，或在上方输入 4 字母密文。
+2. **字句页**：分别在原文/密文框输入，点击对应按钮执行转换。
+3. **设置**：右上角切换繁体转换功能。
+
+## License
+
+MIT
