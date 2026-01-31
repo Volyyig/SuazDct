@@ -1,0 +1,602 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { invoke } from "@tauri-apps/api/core";
+
+const currentPage = ref<"single" | "sentence">("single");
+
+// 设置
+const settings = ref({
+  traditionalEnabled: true  // 默认启用繁体
+});
+const showSettingsMenu = ref(false);
+const settingsRef = ref<HTMLElement | null>(null);
+
+// 页面 1：单字加解密状态
+const singlePlain = ref(""); // 大字输入
+const singleCipher = ref(""); // 密文输入
+const singleError = ref("");
+
+// 页面 2：字句加解密状态
+const sentencePlain = ref("");
+const sentenceCipher = ref("");
+const sentenceError = ref("");
+
+// 计算属性：当前页面标题
+const pageTitle = computed(() => {
+  return currentPage.value === "single" ? "单字加解密" : "字句加解密";
+});
+
+// 监听单字输入（原文）
+async function onSinglePlainInput() {
+  singleError.value = "";
+  if (!singlePlain.value) {
+    singleCipher.value = "";
+    return;
+  }
+  
+  // 限制为1个字符
+  if (singlePlain.value.length > 1) {
+    singlePlain.value = singlePlain.value[0];
+  }
+
+  try {
+    // 调用加密，获取 (密文, 处理后的原文)
+    const [cipher, processed] = await invoke<[string, string]>("encrypt_text", { 
+      plain: singlePlain.value,
+      useTraditional: settings.value.traditionalEnabled
+    });
+    
+    singleCipher.value = cipher;
+    // 更新原文为处理后的（如繁体）
+    if (processed !== singlePlain.value) {
+      singlePlain.value = processed;
+    }
+  } catch (e) {
+    singleError.value = String(e);
+  }
+}
+
+// 监听单字密文输入
+async function onSingleCipherInput() {
+  singleError.value = "";
+  if (!singleCipher.value) {
+    return; // 不清空原文，保留显示？或者也清空？按逻辑应该是清空
+  }
+
+  // 简单的正则检查，只允许 a-z
+  const cleanCipher = singleCipher.value.replace(/[^a-z]/g, "");
+  if (cleanCipher !== singleCipher.value) {
+     singleCipher.value = cleanCipher;
+  }
+
+  // 当输入满4个字符时尝试解密
+  if (cleanCipher.length >= 4) {
+    try {
+      // 截取前4个
+      const toDecrypt = cleanCipher.substring(0, 4);
+      const decrypted = await invoke<string>("decrypt_text", { cipher: toDecrypt });
+      singlePlain.value = decrypted; // 解密出的字
+    } catch (e) {
+      // 解密失败暂不报错，可能是输入中
+    }
+  }
+}
+
+// 页面2：字句加密
+async function encryptSentence() {
+  sentenceError.value = "";
+  if (!sentencePlain.value.trim()) return;
+
+  try {
+    const [cipher, processed] = await invoke<[string, string]>("encrypt_text", { 
+      plain: sentencePlain.value,
+      useTraditional: settings.value.traditionalEnabled
+    });
+    sentenceCipher.value = cipher;
+    sentencePlain.value = processed; // 回显繁体
+  } catch (e) {
+    sentenceError.value = String(e);
+  }
+}
+
+// 页面2：字句解密
+async function decryptSentence() {
+  sentenceError.value = "";
+  if (!sentenceCipher.value.trim()) return;
+
+  try {
+    // 自动分组逻辑
+    const input = sentenceCipher.value;
+    const processed = input.replace(/([a-z]+)/g, (match) => {
+      if (match.length % 4 === 0 && match.length >= 4) {
+        return match.match(/.{1,4}/g)?.join(" ") || match;
+      }
+      return match;
+    });
+
+    const decrypted = await invoke<string>("decrypt_text", { cipher: processed });
+    sentencePlain.value = decrypted;
+  } catch (e) {
+    sentenceError.value = String(e);
+  }
+}
+
+
+
+// 点击外部关闭设置菜单
+function handleClickOutside(event: MouseEvent) {
+  if (settingsRef.value && !settingsRef.value.contains(event.target as Node)) {
+    showSettingsMenu.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+  
+  // 启动时随机显示一个字
+  // 定义两个区域：[起始, 结束]
+  const rangeA = [0x3400, 0x4DBF]; // 扩展 A 区 (6592 字)
+  const rangeBasic = [0x4E00, 0x9FFF]; // 基本区 (20992 字)
+
+  // 计算总的字符数量
+  const countA = rangeA[1] - rangeA[0] + 1;
+  const countBasic = rangeBasic[1] - rangeBasic[0] + 1;
+  const totalCount = countA + countBasic;
+
+  // 在总数范围内取一个随机索引
+  const randomIndex = Math.floor(Math.random() * totalCount);
+
+  let randomCodePoint;
+  if (randomIndex < countA) {
+    // 如果落在 A 区范围内
+    randomCodePoint = rangeA[0] + randomIndex;
+  } else {
+    // 如果落在 基本区 范围内 (偏移掉 A 区的数量)
+    randomCodePoint = rangeBasic[0] + (randomIndex - countA);
+  }
+
+  const randomChar = String.fromCodePoint(randomCodePoint);
+  singlePlain.value = randomChar;
+  onSinglePlainInput(); // 触发加密
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+</script>
+
+<template>
+  <div class="app">
+    <!-- 顶部标题栏 -->
+    <header class="top-bar">
+      <h1 class="page-title">{{ pageTitle }}</h1>
+      
+      <!-- 设置按钮 -->
+      <div class="settings-container" ref="settingsRef">
+        <button 
+          type="button"
+          class="settings-btn" 
+          @click.stop="showSettingsMenu = !showSettingsMenu"
+          title="设置"
+        >
+          ⚙️
+        </button>
+        
+        <!-- 设置菜单 -->
+        <div v-if="showSettingsMenu" class="settings-menu">
+          <div class="menu-item">
+            <label class="menu-label">
+              <input 
+                type="checkbox" 
+                v-model="settings.traditionalEnabled"
+                class="menu-checkbox"
+              />
+              <span class="menu-text">繁体启用</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="content">
+      <!-- 页面 1：单字加解密 -->
+      <div v-if="currentPage === 'single'" class="page single-page">
+        <!-- 密文输入区 (上方) -->
+        <div class="cipher-input-area">
+           <input
+            v-model="singleCipher"
+            type="text"
+            class="bare-input cipher-text"
+            placeholder="输入4字母密文"
+            maxlength="4"
+            @input="onSingleCipherInput"
+          />
+        </div>
+
+        <!-- 大字输入区 (中心) -->
+        <div class="big-char-area">
+          <input
+            v-model="singlePlain"
+            type="text"
+            class="bare-input big-char"
+            placeholder="字"
+            maxlength="1"
+            @input="onSinglePlainInput"
+          />
+        </div>
+        
+        <!-- 错误提示 -->
+        <div v-if="singleError" class="error">{{ singleError }}</div>
+      </div>
+
+      <!-- 页面 2：字句加解密 -->
+      <div v-else class="page sentence-page">
+        <!-- 原文区 -->
+        <div class="section">
+          <label class="label">原文</label>
+          <textarea
+            v-model="sentencePlain"
+            class="textarea"
+            placeholder="输入原文..."
+            rows="5"
+          />
+        </div>
+
+        <!-- 中间操作区 -->
+        <div class="actions">
+           <button type="button" class="btn encrypt-btn" @click="encryptSentence">
+             加密 ⬇️
+           </button>
+        </div>
+
+        <!-- 密文区 -->
+        <div class="section">
+           <label class="label">密文</label>
+           <textarea
+            v-model="sentenceCipher"
+            class="textarea"
+            placeholder="输入密文..."
+            rows="5"
+          />
+        </div>
+
+        <!-- 底部解密按钮 -->
+        <div class="actions">
+           <button type="button" class="btn decrypt-btn" @click="decryptSentence">
+             解密 ⬆️
+           </button>
+        </div>
+
+        <!-- 错误提示 -->
+        <div v-if="sentenceError" class="error">{{ sentenceError }}</div>
+      </div>
+    </main>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+      <button
+        type="button"
+        class="nav-btn"
+        :class="{ active: currentPage === 'single' }"
+        @click="currentPage = 'single'"
+      >
+        <span class="nav-icon">🔤</span>
+        <span class="nav-label">单字</span>
+      </button>
+      <button
+        type="button"
+        class="nav-btn"
+        :class="{ active: currentPage === 'sentence' }"
+        @click="currentPage = 'sentence'"
+      >
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">字句</span>
+      </button>
+    </nav>
+  </div>
+</template>
+
+<style scoped>
+/* 全局禁止选中 (应用于非输入控件) */
+.app, .top-bar, .bottom-nav, .label, .btn, .page-title, .menu-text {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 全局布局 */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: linear-gradient(160deg, #1a0a2e 0%, #16213e 35%, #0f3460 70%, #1a0a2e 100%);
+  overflow: hidden;
+  color: #e0d4f7;
+}
+
+/* 顶部标题栏 */
+.top-bar {
+  flex-shrink: 0;
+  padding: 1rem;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  background: rgba(88, 28, 135, 0.3);
+  border-bottom: 1px solid rgba(167, 139, 250, 0.25);
+}
+
+.page-title {
+  margin: 0;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e0d4f7;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 20px rgba(167, 139, 250, 0.3);
+}
+
+/* 设置菜单 */
+.settings-container {
+  position: absolute;
+  right: 1rem;
+  top: calc(50% + env(safe-area-inset-top) / 2); 
+  transform: translateY(-50%);
+}
+
+.settings-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-btn:hover {
+  background: rgba(167, 139, 250, 0.2);
+}
+
+.settings-menu {
+  position: absolute;
+  top: 120%;
+  right: 0;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: 0.75rem;
+  min-width: 160px;
+  z-index: 100;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.menu-item { padding: 0.25rem; }
+
+.menu-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: #e0d4f7;
+  font-size: 0.95rem;
+}
+
+.menu-label:hover { background: rgba(139, 92, 246, 0.2); }
+
+.menu-checkbox {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: #8b5cf6;
+  cursor: pointer;
+}
+
+.menu-text { font-weight: 500; }
+
+/* 主内容区 */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem;
+}
+
+.page {
+  max-width: 32rem;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 单字加解密页面 */
+.single-page {
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+}
+
+.bare-input {
+  background: transparent;
+  border: none;
+  text-align: center;
+  color: #e0d4f7;
+  font-family: inherit;
+  width: 100%;
+}
+
+.bare-input:focus {
+  outline: none;
+}
+
+.cipher-text {
+  font-size: 2rem;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  color: #a78bfa;
+  letter-spacing: 0.1em;
+}
+
+.cipher-text::placeholder {
+  color: rgba(167, 139, 250, 0.3);
+  font-size: 1.5rem;
+}
+
+.big-char {
+  font-size: 8rem;
+  font-weight: 700;
+  text-shadow: 0 0 40px rgba(167, 139, 250, 0.5);
+  line-height: 1.2;
+}
+
+.big-char::placeholder {
+  color: rgba(224, 212, 247, 0.2);
+}
+
+/* 字句加解密页面 */
+.sentence-page {
+  gap: 1rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #c4b5fd;
+  margin-left: 0.25rem;
+}
+
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: #e0d4f7;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 0.75rem;
+  resize: vertical;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+}
+
+.btn {
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  border: none;
+  border-radius: 2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active { transform: scale(0.96); }
+
+.encrypt-btn {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+}
+.encrypt-btn:hover {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.5);
+}
+
+.decrypt-btn {
+  background: linear-gradient(135deg, #059669, #047857); /* 用绿色区分解密 */
+}
+.decrypt-btn:hover {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.5);
+}
+
+/* 错误提示 */
+.error {
+  padding: 0.8rem;
+  font-size: 0.9rem;
+  color: #fca5a5;
+  background: rgba(185, 28, 28, 0.2);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-radius: 0.5rem;
+  text-align: center;
+}
+
+/* 底部导航 */
+.bottom-nav {
+  flex-shrink: 0;
+  display: flex;
+  background: rgba(88, 28, 135, 0.3);
+  border-top: 1px solid rgba(167, 139, 250, 0.25);
+  padding: 0.5rem;
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  gap: 0.5rem;
+}
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #c4b5fd;
+}
+
+.nav-btn:hover { background: rgba(88, 28, 135, 0.5); }
+.nav-btn.active { background: rgba(124, 58, 237, 0.3); color: #e0d4f7; }
+
+.nav-icon { font-size: 1.5rem; }
+.nav-label { font-size: 0.85rem; font-weight: 500; }
+
+/* 移动端适配 */
+@media (max-width: 640px) {
+  .big-char { font-size: 6rem; }
+  .cipher-text { font-size: 1.6rem; }
+}
+@media (max-height: 600px) {
+  .big-char { font-size: 5rem; }
+}
+</style>
+
+<style>
+/* 全局重置 */
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+</style>
