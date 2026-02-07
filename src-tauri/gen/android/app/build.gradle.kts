@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
@@ -13,6 +14,11 @@ val tauriProperties = Properties().apply {
     }
 }
 
+// 引入local.properties
+val localPropertiesFile = rootProject.file("local.properties")
+val localProperties = Properties()
+localProperties.load(FileInputStream(localPropertiesFile))
+
 android {
     compileSdk = 36
     namespace = "com.entlst.suazdct"
@@ -26,18 +32,10 @@ android {
     }
     signingConfigs {
         create("release") {
-            val env = System.getenv()
-            val keystore = env["TAURI_ANDROID_KEYSTORE_PATH"]
-            val password = env["TAURI_ANDROID_KEYSTORE_PASSWORD"]
-            val alias = env["TAURI_ANDROID_KEY_ALIAS"]
-            val keyPassword_ = env["TAURI_ANDROID_KEY_PASSWORD"]
-            
-            if (keystore != null && password != null && alias != null && keyPassword_ != null) {
-                storeFile = file(keystore)
-                storePassword = password
-                keyAlias = alias
-                keyPassword = keyPassword_
-            }
+            keyAlias = localProperties["keyAlias"] as String
+            keyPassword = localProperties["keyPassword"] as String
+            storeFile = file(localProperties["storeFile"] as String)
+            storePassword = localProperties["storePassword"] as String
         }
     }
     buildTypes {

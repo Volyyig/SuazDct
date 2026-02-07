@@ -557,7 +557,6 @@ body {
   flex-direction: column;
   flex: 1;
   gap: 1rem;
-  border: whitesmoke solid 1px;
 }
 
 .button-section {
@@ -567,7 +566,6 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  border: #047857 solid;
 }
 
 .side-btn-container {
