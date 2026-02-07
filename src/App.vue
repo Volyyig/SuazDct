@@ -557,14 +557,17 @@ body {
   flex-direction: column;
   flex: 1;
   gap: 1rem;
+  border: whitesmoke solid 1px;
 }
 
 .button-section {
-  min-width: 5rem;
+  min-width: 10%;   /* 设置最小宽度为10%，这里仅用于桌面 */
+  min-height: 20%;  /* 设置最小高度为20%，这里仅用于移动 */
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  border: #047857 solid;
 }
 
 .side-btn-container {
