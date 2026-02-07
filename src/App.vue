@@ -340,6 +340,7 @@ body {
   height: 100%;
   margin: 0;
   background: #5500ff;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 全局禁止选中 (应用于非输入控件) */
@@ -352,6 +353,7 @@ body {
 .menu-text {
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 全局布局 */
@@ -406,6 +408,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .settings-btn:hover {
@@ -536,6 +539,16 @@ body {
   gap: 0rem;
   position: relative;
   /* 为悬浮按钮提供定位基点 */
+}
+
+@media (max-width: 640px) {
+  .sentence-page {
+    margin: 0 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0rem;
+    position: relative;
+  }
 }
 
 .input-section {
@@ -696,6 +709,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .side-btn {
@@ -766,6 +780,7 @@ body {
   cursor: pointer;
   transition: all 0.2s;
   color: #c4b5fd;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-btn:hover {
