@@ -33,7 +33,7 @@ async function onSinglePlainInput() {
     singleCipher.value = "";
     return;
   }
-  
+
   // 限制为1个字符
   if (singlePlain.value.length > 1) {
     singlePlain.value = singlePlain.value[0];
@@ -41,11 +41,11 @@ async function onSinglePlainInput() {
 
   try {
     // 调用加密，获取 (密文, 处理后的原文)
-    const [cipher, processed] = await invoke<[string, string]>("encrypt_text", { 
+    const [cipher, processed] = await invoke<[string, string]>("encrypt_text", {
       plain: singlePlain.value,
       useTraditional: settings.value.traditionalEnabled
     });
-    
+
     singleCipher.value = cipher;
     // 更新原文为处理后的（如繁体）
     if (processed !== singlePlain.value) {
@@ -66,7 +66,7 @@ async function onSingleCipherInput() {
   // 简单的正则检查，只允许 a-z
   const cleanCipher = singleCipher.value.replace(/[^a-z]/g, "");
   if (cleanCipher !== singleCipher.value) {
-     singleCipher.value = cleanCipher;
+    singleCipher.value = cleanCipher;
   }
 
   // 当输入满4个字符时尝试解密
@@ -88,7 +88,7 @@ async function encryptSentence() {
   if (!sentencePlain.value.trim()) return;
 
   try {
-    const [cipher, processed] = await invoke<[string, string]>("encrypt_text", { 
+    const [cipher, processed] = await invoke<[string, string]>("encrypt_text", {
       plain: sentencePlain.value,
       useTraditional: settings.value.traditionalEnabled
     });
@@ -121,6 +121,61 @@ async function decryptSentence() {
   }
 }
 
+// 页面2：自动触发处理
+let sentenceTimer: number | null = null;
+
+function onSentencePlainInput() {
+  if (!sentencePlain.value.trim()) {
+    sentenceCipher.value = "";
+    return;
+  }
+  if (sentenceTimer) clearTimeout(sentenceTimer);
+  sentenceTimer = window.setTimeout(encryptSentence, 100);
+}
+
+function onSentenceCipherInput() {
+  if (!sentenceCipher.value.trim()) {
+    return;
+  }
+  if (sentenceTimer) clearTimeout(sentenceTimer);
+  sentenceTimer = window.setTimeout(decryptSentence, 100);
+}
+
+function clearAll() {
+  sentencePlain.value = "";
+  sentenceCipher.value = "";
+  sentenceError.value = "";
+  singlePlain.value = "";
+  singleCipher.value = "";
+  singleError.value = "";
+}
+
+// 剪贴板功能
+async function copySentence(text: string) {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    sentenceError.value = "复制失败";
+  }
+}
+
+async function pasteSentence(type: 'plain' | 'cipher') {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (type === 'plain') {
+      sentencePlain.value += text;
+      onSentencePlainInput();
+    } else {
+      sentenceCipher.value += text;
+      onSentenceCipherInput();
+    }
+  } catch (e) {
+    sentenceError.value = "粘贴失败";
+  }
+}
+
+
 
 
 // 点击外部关闭设置菜单
@@ -132,7 +187,7 @@ function handleClickOutside(event: MouseEvent) {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
-  
+
   // 启动时随机显示一个字
   // 定义两个区域：[起始, 结束]
   const rangeA = [0x3400, 0x4DBF]; // 扩展 A 区 (6592 字)
@@ -170,27 +225,18 @@ onUnmounted(() => {
     <!-- 顶部标题栏 -->
     <header class="top-bar">
       <h1 class="page-title">{{ pageTitle }}</h1>
-      
+
       <!-- 设置按钮 -->
       <div class="settings-container" ref="settingsRef">
-        <button 
-          type="button"
-          class="settings-btn" 
-          @click.stop="showSettingsMenu = !showSettingsMenu"
-          title="设置"
-        >
+        <button type="button" class="settings-btn" @click.stop="showSettingsMenu = !showSettingsMenu" title="设置">
           ⚙️
         </button>
-        
+
         <!-- 设置菜单 -->
         <div v-if="showSettingsMenu" class="settings-menu">
           <div class="menu-item">
             <label class="menu-label">
-              <input 
-                type="checkbox" 
-                v-model="settings.traditionalEnabled"
-                class="menu-checkbox"
-              />
+              <input type="checkbox" v-model="settings.traditionalEnabled" class="menu-checkbox" />
               <span class="menu-text">繁体启用</span>
             </label>
           </div>
@@ -204,92 +250,82 @@ onUnmounted(() => {
       <div v-if="currentPage === 'single'" class="page single-page">
         <!-- 密文输入区 (上方) -->
         <div class="cipher-input-area">
-           <input
-            v-model="singleCipher"
-            type="text"
-            class="bare-input cipher-text"
-            placeholder="输入4字母密文"
-            maxlength="4"
-            @input="onSingleCipherInput"
-          />
+          <input v-model="singleCipher" type="text" class="bare-input cipher-text" placeholder="输入4字母密文" maxlength="4"
+            @input="onSingleCipherInput" />
         </div>
 
         <!-- 大字输入区 (中心) -->
         <div class="big-char-area">
-          <input
-            v-model="singlePlain"
-            type="text"
-            class="bare-input big-char"
-            placeholder="字"
-            maxlength="1"
-            @input="onSinglePlainInput"
-          />
+          <input v-model="singlePlain" type="text" class="bare-input big-char" placeholder="字" maxlength="1"
+            @input="onSinglePlainInput" />
         </div>
-        
+
         <!-- 错误提示 -->
         <div v-if="singleError" class="error">{{ singleError }}</div>
       </div>
 
       <!-- 页面 2：字句加解密 -->
       <div v-else class="page sentence-page">
-        <!-- 原文区 -->
-        <div class="section">
-          <label class="label">原文</label>
-          <textarea
-            v-model="sentencePlain"
-            class="textarea"
-            placeholder="输入原文..."
-            rows="5"
-          />
+        <div class="input-section">
+          <!-- 原文区 -->
+          <div class="section">
+            <label class="label">原文</label>
+            <div class="input-row">
+              <textarea v-model="sentencePlain" class="textarea" placeholder="输入原文..." rows="5"
+                @input="onSentencePlainInput" />
+              <div class="side-btn-container">
+                <button type="button" class="btn side-btn copy-btn" @click="copySentence(sentencePlain)">
+                  复制
+                </button>
+                <button type="button" class="btn side-btn paste-btn" @click="pasteSentence('plain')">
+                  粘贴
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 错误提示 -->
+          <div v-if="sentenceError" class="error">{{ sentenceError }}</div>
+
+          <!-- 密文区 -->
+          <div class="section">
+            <label class="label">密文</label>
+            <div class="input-row">
+              <textarea v-model="sentenceCipher" class="textarea" placeholder="输入密文..." rows="5"
+                @input="onSentenceCipherInput" />
+              <div class="side-btn-container">
+                <button type="button" class="btn side-btn copy-btn" @click="copySentence(sentenceCipher)">
+                  复制<br />
+                </button>
+                <button type="button" class="btn side-btn paste-btn" @click="pasteSentence('cipher')">
+                  粘贴<br />
+                </button>
+              </div>
+
+            </div>
+          </div>
         </div>
 
-        <!-- 中间操作区 -->
-        <div class="actions">
-           <button type="button" class="btn encrypt-btn" @click="encryptSentence">
-             加密 ⬇️
-           </button>
+        <div class="button-section">
+          <!-- 悬浮清空按钮：位于右侧中间 -->
+          <button type="button" class="btn fixed-clear-btn" @click="clearAll" title="清空全部内容">
+            <span class="clear-icon">🧹</span>
+            <span class="clear-text">清空</span>
+          </button>
         </div>
-
-        <!-- 密文区 -->
-        <div class="section">
-           <label class="label">密文</label>
-           <textarea
-            v-model="sentenceCipher"
-            class="textarea"
-            placeholder="输入密文..."
-            rows="5"
-          />
-        </div>
-
-        <!-- 底部解密按钮 -->
-        <div class="actions">
-           <button type="button" class="btn decrypt-btn" @click="decryptSentence">
-             解密 ⬆️
-           </button>
-        </div>
-
-        <!-- 错误提示 -->
-        <div v-if="sentenceError" class="error">{{ sentenceError }}</div>
       </div>
     </main>
 
     <!-- 底部导航 -->
     <nav class="bottom-nav">
-      <button
-        type="button"
-        class="nav-btn"
-        :class="{ active: currentPage === 'single' }"
-        @click="currentPage = 'single'"
-      >
+      <button type="button" class="nav-btn" :class="{ active: currentPage === 'single' }"
+        @click="currentPage = 'single'">
         <span class="nav-icon">🔤</span>
         <span class="nav-label">单字</span>
       </button>
-      <button
-        type="button"
-        class="nav-btn"
-        :class="{ active: currentPage === 'sentence' }"
-        @click="currentPage = 'sentence'"
-      >
+      <button type="button" class="nav-btn" :class="{ active: currentPage === 'sentence' }"
+        @click="currentPage = 'sentence'">
         <span class="nav-icon">📝</span>
         <span class="nav-label">字句</span>
       </button>
@@ -298,8 +334,22 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: #5500ff;
+}
+
 /* 全局禁止选中 (应用于非输入控件) */
-.app, .top-bar, .bottom-nav, .label, .btn, .page-title, .menu-text {
+.app,
+.top-bar,
+.bottom-nav,
+.label,
+.btn,
+.page-title,
+.menu-text {
   user-select: none;
   -webkit-user-select: none;
 }
@@ -341,7 +391,7 @@ onUnmounted(() => {
 .settings-container {
   position: absolute;
   right: 1rem;
-  top: calc(50% + env(safe-area-inset-top) / 2); 
+  top: calc(50% + env(safe-area-inset-top) / 2);
   transform: translateY(-50%);
 }
 
@@ -378,11 +428,20 @@ onUnmounted(() => {
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.menu-item { padding: 0.25rem; }
+.menu-item {
+  padding: 0.25rem;
+}
 
 .menu-label {
   display: flex;
@@ -396,7 +455,9 @@ onUnmounted(() => {
   font-size: 0.95rem;
 }
 
-.menu-label:hover { background: rgba(139, 92, 246, 0.2); }
+.menu-label:hover {
+  background: rgba(139, 92, 246, 0.2);
+}
 
 .menu-checkbox {
   width: 1.1rem;
@@ -405,7 +466,9 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.menu-text { font-weight: 500; }
+.menu-text {
+  font-weight: 500;
+}
 
 /* 主内容区 */
 .content {
@@ -416,7 +479,6 @@ onUnmounted(() => {
 }
 
 .page {
-  max-width: 32rem;
   margin: 0 auto;
   height: 100%;
   display: flex;
@@ -468,7 +530,116 @@ onUnmounted(() => {
 
 /* 字句加解密页面 */
 .sentence-page {
+  margin: 0 1.5rem 0 3rem;
+  display: flex;
+  flex-direction: row;
+  gap: 0rem;
+  position: relative;
+  /* 为悬浮按钮提供定位基点 */
+}
+
+.input-section {
+  /* max-width: 32rem; */
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   gap: 1rem;
+}
+
+.button-section {
+  min-width: 5rem;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.side-btn-container {
+  display: flex; 
+  justify-content: center; 
+  gap: 2rem;
+}
+
+/* 悬浮清空按钮样式 */
+.fixed-clear-btn {
+  position: absolute;
+  right: -1.2rem;
+  /* top: 50%; */
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+
+  width: 3.5rem;
+  height: auto;
+  min-height: 5rem;
+  padding: 1.2rem 0.5rem;
+  border-radius: 1.2rem;
+
+  background: rgba(167, 139, 250, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  color: #c4b5fd;
+
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 10;
+}
+
+.fixed-clear-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fff;
+  transform: scale(1.08);
+  box-shadow: 0 12px 40px rgba(239, 68, 68, 0.25);
+  right: -0.8rem;
+}
+
+.fixed-clear-btn:active {
+  transform: scale(0.98);
+}
+
+.fixed-clear-btn .clear-icon {
+  font-size: 1.4rem;
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.3));
+}
+
+.fixed-clear-btn:hover .clear-icon {
+  transform: rotate(-15deg) scale(1.1);
+}
+
+.fixed-clear-btn .clear-text {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+/* 窄屏适配 */
+@media (max-width: 640px) {
+  .fixed-clear-btn {
+    right: -0.6rem;
+    width: 2.6rem;
+    min-height: 4.5rem;
+    padding: 0.8rem 0.3rem;
+    border-radius: 0.8rem;
+  }
+
+  .fixed-clear-btn:hover {
+    right: -0.4rem;
+  }
+
+  .fixed-clear-btn .clear-icon {
+    font-size: 1.1rem;
+  }
+
+  .fixed-clear-btn .clear-text {
+    font-size: 0.6rem;
+  }
 }
 
 .section {
@@ -485,7 +656,8 @@ onUnmounted(() => {
 }
 
 .textarea {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   box-sizing: border-box;
   padding: 1rem;
   font-size: 1rem;
@@ -494,7 +666,7 @@ onUnmounted(() => {
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(167, 139, 250, 0.35);
   border-radius: 0.75rem;
-  resize: vertical;
+  resize: none;
 }
 
 .textarea:focus {
@@ -503,9 +675,12 @@ onUnmounted(() => {
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
 }
 
-.actions {
+.input-row {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: stretch;
+  min-height: 120px;
 }
 
 .btn {
@@ -518,22 +693,40 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btn:active { transform: scale(0.96); }
+.side-btn {
+  width: 3.5rem;
+  flex-shrink: 0;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  font-size: 0.85rem;
+  text-align: center;
+  line-height: 1.2;
+}
 
-.encrypt-btn {
+.btn:active {
+  transform: scale(0.96);
+}
+
+.copy-btn {
   background: linear-gradient(135deg, #7c3aed, #6d28d9);
 }
-.encrypt-btn:hover {
+
+.copy-btn:hover {
   background: linear-gradient(135deg, #8b5cf6, #7c3aed);
   box-shadow: 0 4px 15px rgba(124, 58, 237, 0.5);
 }
 
-.decrypt-btn {
-  background: linear-gradient(135deg, #059669, #047857); /* 用绿色区分解密 */
+.paste-btn {
+  background: linear-gradient(135deg, #059669, #047857);
+  /* 用绿色区分解密 */
 }
-.decrypt-btn:hover {
+
+.paste-btn:hover {
   background: linear-gradient(135deg, #10b981, #059669);
   box-shadow: 0 4px 15px rgba(16, 185, 129, 0.5);
 }
@@ -575,25 +768,47 @@ onUnmounted(() => {
   color: #c4b5fd;
 }
 
-.nav-btn:hover { background: rgba(88, 28, 135, 0.5); }
-.nav-btn.active { background: rgba(124, 58, 237, 0.3); color: #e0d4f7; }
+.nav-btn:hover {
+  background: rgba(88, 28, 135, 0.5);
+}
 
-.nav-icon { font-size: 1.5rem; }
-.nav-label { font-size: 0.85rem; font-weight: 500; }
+.nav-btn.active {
+  background: rgba(124, 58, 237, 0.3);
+  color: #e0d4f7;
+}
+
+.nav-icon {
+  font-size: 1.5rem;
+}
+
+.nav-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
 
 /* 移动端适配 */
 @media (max-width: 640px) {
-  .big-char { font-size: 6rem; }
-  .cipher-text { font-size: 1.6rem; }
+  .big-char {
+    font-size: 6rem;
+  }
+
+  .cipher-text {
+    font-size: 1.6rem;
+  }
 }
+
 @media (max-height: 600px) {
-  .big-char { font-size: 5rem; }
+  .big-char {
+    font-size: 5rem;
+  }
 }
 </style>
 
 <style>
 /* 全局重置 */
-html, body, #app {
+html,
+body,
+#app {
   margin: 0;
   padding: 0;
   height: 100vh;
