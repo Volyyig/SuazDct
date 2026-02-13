@@ -36,4 +36,4 @@ src-tauri/gen/apple/build/
 src-tauri/gen/apple/DerivedData/
 
 # dist
-dist-apk
+output
