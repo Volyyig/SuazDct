@@ -31,7 +31,7 @@ const sentenceError = ref("");
 
 // 计算属性：当前页面标题
 const pageTitle = computed(() => {
-  return currentPage.value === "single" ? "单字加解密" : "字句加解密";
+  return currentPage.value === "single" ? "单字" : "字句";
 });
 
 // 监听单字输入（原文）
@@ -367,9 +367,9 @@ onUnmounted(() => {
 <style>
 :root {
   /* Dark Theme (Default) */
-  --bg-color: #0f172a;
-  --surface-color: #1e293b;
-  --border-color: #334155;
+  --bg-color: #0a0a0b;
+  --surface-color: #161618;
+  --border-color: #27272a;
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --accent-color: #6366f1;
