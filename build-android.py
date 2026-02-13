@@ -1,5 +1,5 @@
 """
-为v8a构建apk，复制apk到dist-apk并修改名字
+为v8a构建apk, 复制apk到dist-apk并修改名字
 """
 
 import json
@@ -15,16 +15,16 @@ SOURCE_FILENAME = "app-universal-release.apk"
 # 回退版本号
 FALLBACK_VERSION = "0.0.0"
 # 输出目录（当前脚本所在目录下）
-OUTPUT_FOLDER = "dist-apk"
+OUTPUT_FOLDER = "output"
 
 def build():
     # 1. 获取版本号
     try:
-        with open("package.json", "r", encoding="utf-8") as f:
+        with open("src-tauri/tauri.conf.json", "r", encoding="utf-8") as f:
             data = json.load(f)
             version = data.get("version", FALLBACK_VERSION)
     except FileNotFoundError:
-        print("[-] 错误: 找不到 package.json")
+        print("[-] 错误: 找不到 tauri.conf.json")
         version = FALLBACK_VERSION
 
     print(f">>> 正在构建 {APP_NAME} v{version} 为 {TARGET_ARCH} 架构...")
