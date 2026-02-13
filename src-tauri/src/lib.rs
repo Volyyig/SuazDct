@@ -1,5 +1,6 @@
 // UniAZ: 中文字符转为 a-z 表示，通过 Tauri 暴露加解密
 use hanconv::s2t;
+use tauri::Manager;
 use uniaz::UniAz;
 
 /// 检查字符是否为中文字符（CJK 统一汉字）
@@ -9,6 +10,15 @@ fn is_chinese(c: char) -> bool {
         '\u{3400}'..='\u{4DBF}' |  // CJK 扩展 A    TODO: 扩A一部分文字加密后为3个字母，暂未作处理
         '\u{F900}'..='\u{FAFF}'    // CJK 兼容汉字
     )
+}
+
+/// Control window display on Desktop
+#[tauri::command]
+fn release_window(app: tauri::AppHandle) {
+    #[cfg(not(mobile))]
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+    }
 }
 
 #[tauri::command]
@@ -67,7 +77,11 @@ fn decrypt_text(cipher: &str) -> Result<String, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![encrypt_text, decrypt_text])
+        .invoke_handler(tauri::generate_handler![
+            encrypt_text,
+            decrypt_text,
+            release_window
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -191,6 +191,7 @@ function handleClickOutside(event: MouseEvent) {
 }
 
 onMounted(() => {
+  // listen click outside
   document.addEventListener('click', handleClickOutside);
 
   // Initialize theme
@@ -220,6 +221,9 @@ onMounted(() => {
   const randomChar = String.fromCodePoint(randomCodePoint);
   singlePlain.value = randomChar;
   onSinglePlainInput();
+
+  // invoke window
+  invoke("release_window");
 });
 
 onUnmounted(() => {
