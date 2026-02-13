@@ -4,6 +4,14 @@ import { invoke } from "@tauri-apps/api/core";
 
 const currentPage = ref<"single" | "sentence">("single");
 
+// Theme management
+const theme = ref<"light" | "dark">("dark");
+const toggleTheme = () => {
+  theme.value = theme.value === "light" ? "dark" : "light";
+  localStorage.setItem("theme", theme.value);
+  document.documentElement.setAttribute("data-theme", theme.value);
+};
+
 // 设置
 const settings = ref({
   traditionalEnabled: true  // 默认启用繁体
@@ -175,9 +183,6 @@ async function pasteSentence(type: 'plain' | 'cipher') {
   }
 }
 
-
-
-
 // 点击外部关闭设置菜单
 function handleClickOutside(event: MouseEvent) {
   if (settingsRef.value && !settingsRef.value.contains(event.target as Node)) {
@@ -188,31 +193,33 @@ function handleClickOutside(event: MouseEvent) {
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
 
-  // 启动时随机显示一个字
-  // 定义两个区域：[起始, 结束]
-  const rangeA = [0x3400, 0x4DBF]; // 扩展 A 区 (6592 字)
-  const rangeBasic = [0x4E00, 0x9FFF]; // 基本区 (20992 字)
+  // Initialize theme
+  const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+  if (savedTheme) {
+    theme.value = savedTheme;
+  } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+    theme.value = "light";
+  }
+  document.documentElement.setAttribute("data-theme", theme.value);
 
-  // 计算总的字符数量
+  // 启动时随机显示一个字
+  const rangeA = [0x3400, 0x4DBF];
+  const rangeBasic = [0x4E00, 0x9FFF];
   const countA = rangeA[1] - rangeA[0] + 1;
   const countBasic = rangeBasic[1] - rangeBasic[0] + 1;
   const totalCount = countA + countBasic;
-
-  // 在总数范围内取一个随机索引
   const randomIndex = Math.floor(Math.random() * totalCount);
 
   let randomCodePoint;
   if (randomIndex < countA) {
-    // 如果落在 A 区范围内
     randomCodePoint = rangeA[0] + randomIndex;
   } else {
-    // 如果落在 基本区 范围内 (偏移掉 A 区的数量)
     randomCodePoint = rangeBasic[0] + (randomIndex - countA);
   }
 
   const randomChar = String.fromCodePoint(randomCodePoint);
   singlePlain.value = randomChar;
-  onSinglePlainInput(); // 触发加密
+  onSinglePlainInput();
 });
 
 onUnmounted(() => {
@@ -224,21 +231,46 @@ onUnmounted(() => {
   <div class="app">
     <!-- 顶部标题栏 -->
     <header class="top-bar">
-      <h1 class="page-title">{{ pageTitle }}</h1>
+      <div class="top-bar-left">
+        <h1 class="page-title">{{ pageTitle }}</h1>
+      </div>
 
-      <!-- 设置按钮 -->
-      <div class="settings-container" ref="settingsRef">
-        <button type="button" class="settings-btn" @click.stop="showSettingsMenu = !showSettingsMenu" title="设置">
-          ⚙️
+      <div class="top-bar-right">
+        <!-- 切换主题按钮 -->
+        <button type="button" class="icon-btn theme-toggle" @click="toggleTheme"
+          :title="theme === 'light' ? '切换到暗色模式' : '切换到亮色模式'">
+          <svg v-if="theme === 'dark'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5" />
+            <path
+              d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+          </svg>
+          <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
         </button>
 
-        <!-- 设置菜单 -->
-        <div v-if="showSettingsMenu" class="settings-menu">
-          <div class="menu-item">
-            <label class="menu-label">
-              <input type="checkbox" v-model="settings.traditionalEnabled" class="menu-checkbox" />
-              <span class="menu-text">繁体启用</span>
-            </label>
+        <!-- 设置按钮 -->
+        <div class="settings-container" ref="settingsRef">
+          <button type="button" class="icon-btn settings-btn" @click.stop="showSettingsMenu = !showSettingsMenu"
+            title="设置">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+
+          <!-- 设置菜单 -->
+          <div v-if="showSettingsMenu" class="settings-menu">
+            <div class="menu-item">
+              <label class="menu-label">
+                <input type="checkbox" v-model="settings.traditionalEnabled" class="menu-checkbox" />
+                <span class="menu-text">繁体启用</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -247,71 +279,60 @@ onUnmounted(() => {
     <!-- 主内容区 -->
     <main class="content">
       <!-- 页面 1：单字加解密 -->
-      <div v-if="currentPage === 'single'" class="page single-page">
-        <!-- 密文输入区 (上方) -->
-        <div class="cipher-input-area">
-          <input v-model="singleCipher" type="text" class="bare-input cipher-text" placeholder="输入4字母密文" maxlength="4"
-            @input="onSingleCipherInput" />
-        </div>
+      <div v-show="currentPage === 'single'" class="page single-page">
+        <div class="single-card">
+          <div class="cipher-input-area">
+            <input v-model="singleCipher" type="text" class="minimal-input cipher-text" placeholder="输入4字母密文"
+              maxlength="4" @input="onSingleCipherInput" />
+          </div>
 
-        <!-- 大字输入区 (中心) -->
-        <div class="big-char-area">
-          <input v-model="singlePlain" type="text" class="bare-input big-char" placeholder="字" maxlength="1"
-            @input="onSinglePlainInput" />
-        </div>
+          <div class="big-char-area">
+            <input v-model="singlePlain" type="text" class="minimal-input big-char" placeholder="字" maxlength="1"
+              @input="onSinglePlainInput" />
+          </div>
 
-        <!-- 错误提示 -->
-        <div v-if="singleError" class="error">{{ singleError }}</div>
+          <div v-if="singleError" class="error-toast">{{ singleError }}</div>
+        </div>
       </div>
 
       <!-- 页面 2：字句加解密 -->
-      <div v-else class="page sentence-page">
-        <div class="input-section">
+      <div v-show="currentPage === 'sentence'" class="page sentence-page">
+        <div class="sentence-container">
           <!-- 原文区 -->
-          <div class="section">
-            <label class="label">原文</label>
-            <div class="input-row">
-              <textarea v-model="sentencePlain" class="textarea" placeholder="输入原文..." rows="5"
-                @input="onSentencePlainInput" />
-              <div class="side-btn-container">
-                <button type="button" class="btn side-btn copy-btn" @click="copySentence(sentencePlain)">
-                  复制
-                </button>
-                <button type="button" class="btn side-btn paste-btn" @click="pasteSentence('plain')">
-                  粘贴
-                </button>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">原文</span>
+              <div class="card-actions">
+                <button @click="copySentence(sentencePlain)" class="text-btn">复制</button>
+                <button @click="pasteSentence('plain')" class="text-btn">粘贴</button>
               </div>
-
             </div>
+            <textarea v-model="sentencePlain" class="pure-textarea" placeholder="输入原文..." rows="4"
+              @input="onSentencePlainInput" />
           </div>
-
-          <!-- 错误提示 -->
-          <div v-if="sentenceError" class="error">{{ sentenceError }}</div>
 
           <!-- 密文区 -->
-          <div class="section">
-            <label class="label">密文</label>
-            <div class="input-row">
-              <textarea v-model="sentenceCipher" class="textarea" placeholder="输入密文..." rows="5"
-                @input="onSentenceCipherInput" />
-              <div class="side-btn-container">
-                <button type="button" class="btn side-btn copy-btn" @click="copySentence(sentenceCipher)">
-                  复制<br />
-                </button>
-                <button type="button" class="btn side-btn paste-btn" @click="pasteSentence('cipher')">
-                  粘贴<br />
-                </button>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">密文</span>
+              <div class="card-actions">
+                <button @click="copySentence(sentenceCipher)" class="text-btn">复制</button>
+                <button @click="pasteSentence('cipher')" class="text-btn">粘贴</button>
               </div>
-
             </div>
+            <textarea v-model="sentenceCipher" class="pure-textarea" placeholder="输入密文..." rows="4"
+              @input="onSentenceCipherInput" />
           </div>
-        </div>
 
-        <div class="button-section">
-          <!-- 悬浮清空按钮：位于右侧中间 -->
-          <button type="button" class="btn fixed-clear-btn" @click="clearAll" title="清空全部内容">
-            <span class="clear-icon">🧹</span>
-            <span class="clear-text">清空</span>
+          <div v-if="sentenceError" class="error-toast">{{ sentenceError }}</div>
+
+          <!-- 固定清空按钮 -->
+          <button type="button" class="floating-clear-btn" @click="clearAll" title="清空全部">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 9l4-4m0 4l-4-4" />
+            </svg>
           </button>
         </div>
       </div>
@@ -321,119 +342,314 @@ onUnmounted(() => {
     <nav class="bottom-nav">
       <button type="button" class="nav-btn" :class="{ active: currentPage === 'single' }"
         @click="currentPage = 'single'">
-        <span class="nav-icon">🔤</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
         <span class="nav-label">单字</span>
       </button>
       <button type="button" class="nav-btn" :class="{ active: currentPage === 'sentence' }"
         @click="currentPage = 'sentence'">
-        <span class="nav-icon">📝</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
         <span class="nav-label">字句</span>
       </button>
     </nav>
   </div>
 </template>
 
-<style scoped>
-html,
-body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  background: #5500ff;
-  -webkit-tap-highlight-color: transparent;
+<style>
+:root {
+  /* Dark Theme (Default) */
+  --bg-color: #0f172a;
+  --surface-color: #1e293b;
+  --border-color: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-color: #6366f1;
+  --accent-hover: #818cf8;
+  --error-color: #ef4444;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 全局禁止选中 (应用于非输入控件) */
-.app,
-.top-bar,
-.bottom-nav,
-.label,
-.btn,
-.page-title,
-.menu-text {
+[data-theme="light"] {
+  --bg-color: #f8fafc;
+  --surface-color: #ffffff;
+  --border-color: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent-color: #4f46e5;
+  --accent-hover: #4338ca;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
   user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
 }
 
-/* 全局布局 */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  overflow: hidden;
+}
+
 .app {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(160deg, #1a0a2e 0%, #16213e 35%, #0f3460 70%, #1a0a2e 100%);
-  overflow: hidden;
-  color: #e0d4f7;
+  /* max-width: 600px; */
+  margin: 0 auto;
+  position: relative;
 }
 
-/* 顶部标题栏 */
+/* Header */
 .top-bar {
-  flex-shrink: 0;
-  padding: 1rem;
-  padding-top: max(1rem, env(safe-area-inset-top));
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
+  padding: 1rem 1.5rem;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-color);
+  z-index: 50;
   position: relative;
-  background: rgba(88, 28, 135, 0.3);
-  border-bottom: 1px solid rgba(167, 139, 250, 0.25);
+}
+
+.settings-container {
+  position: relative;
 }
 
 .page-title {
+  font-size: 1.125rem;
+  font-weight: 600;
   margin: 0;
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #e0d4f7;
-  letter-spacing: 0.05em;
-  text-shadow: 0 0 20px rgba(167, 139, 250, 0.3);
+  color: var(--text-primary);
 }
 
-/* 设置菜单 */
-.settings-container {
-  position: absolute;
-  right: 1rem;
-  top: calc(50% + env(safe-area-inset-top) / 2);
-  transform: translateY(-50%);
+.top-bar-right {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-.settings-btn {
+.icon-btn {
   background: transparent;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  color: var(--text-secondary);
   padding: 0.5rem;
-  border-radius: 50%;
-  transition: background 0.2s;
+  cursor: pointer;
+  transition: var(--transition);
   display: flex;
   align-items: center;
   justify-content: center;
-  -webkit-tap-highlight-color: transparent;
 }
 
-.settings-btn:hover {
-  background: rgba(167, 139, 250, 0.2);
+.icon-btn:hover {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  border-color: var(--border-color);
 }
 
+/* Content */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Single Page */
+.single-page {
+  justify-content: center;
+  align-items: center;
+}
+
+.single-card {
+  width: 100%;
+  max-width: 320px;
+  padding: 2.5rem;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.minimal-input {
+  background: transparent;
+  border: none;
+  text-align: center;
+  color: var(--text-primary);
+  width: 100%;
+}
+
+.minimal-input:focus {
+  outline: none;
+}
+
+.cipher-text {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.5rem;
+  letter-spacing: 0.25rem;
+  color: var(--accent-color);
+}
+
+.big-char {
+  font-size: 10rem;
+  font-weight: 200;
+  line-height: 1;
+  transition: var(--transition);
+}
+
+/* Sentence Page */
+.sentence-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: relative;
+}
+
+.card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.card-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pure-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  resize: none;
+  color: var(--text-primary);
+  font-size: 1rem;
+  line-height: 1.6;
+  padding: 0;
+}
+
+.pure-textarea:focus {
+  outline: none;
+}
+
+.text-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent-color);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: var(--transition);
+}
+
+.text-btn:hover {
+  background: var(--bg-color);
+  color: var(--accent-hover);
+}
+
+/* Floating Clear */
+.floating-clear-btn {
+  position: fixed;
+  bottom: 6rem;
+  right: 1.5rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  z-index: 100;
+}
+
+.floating-clear-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+}
+
+.floating-clear-btn:active {
+  transform: scale(0.95);
+}
+
+/* Settings Menu */
 .settings-menu {
   position: absolute;
-  top: 120%;
+  top: calc(100% + 0.5rem);
   right: 0;
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(167, 139, 250, 0.3);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
-  min-width: 160px;
-  z-index: 100;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
   padding: 0.5rem;
-  animation: slideDown 0.2s ease-out;
+  min-width: 140px;
+  box-shadow: var(--shadow-md);
+  animation: fadeIn 0.15s ease-out;
+  z-index: 100;
 }
 
-@keyframes slideDown {
+/* Restore selection for inputs */
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-4px);
   }
 
   to {
@@ -442,330 +658,36 @@ body {
   }
 }
 
-.menu-item {
-  padding: 0.25rem;
-}
-
 .menu-label {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
   cursor: pointer;
-  transition: background 0.2s;
-  color: #e0d4f7;
-  font-size: 0.95rem;
+  border-radius: 0.5rem;
+  transition: var(--transition);
 }
 
 .menu-label:hover {
-  background: rgba(139, 92, 246, 0.2);
-}
-
-.menu-checkbox {
-  width: 1.1rem;
-  height: 1.1rem;
-  accent-color: #8b5cf6;
-  cursor: pointer;
+  background: var(--bg-color);
 }
 
 .menu-text {
-  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--text-primary);
 }
 
-/* 主内容区 */
-.content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 1rem;
+.menu-checkbox {
+  accent-color: var(--accent-color);
 }
 
-.page {
-  margin: 0 auto;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 单字加解密页面 */
-.single-page {
-  justify-content: center;
-  align-items: center;
-  gap: 2rem;
-}
-
-.bare-input {
-  background: transparent;
-  border: none;
-  text-align: center;
-  color: #e0d4f7;
-  font-family: inherit;
-  width: 100%;
-}
-
-.bare-input:focus {
-  outline: none;
-}
-
-.cipher-text {
-  font-size: 2rem;
-  font-family: "JetBrains Mono", "Fira Code", monospace;
-  color: #a78bfa;
-  letter-spacing: 0.1em;
-}
-
-.cipher-text::placeholder {
-  color: rgba(167, 139, 250, 0.3);
-  font-size: 1.5rem;
-}
-
-.big-char {
-  font-size: 8rem;
-  font-weight: 700;
-  text-shadow: 0 0 40px rgba(167, 139, 250, 0.5);
-  line-height: 1.2;
-}
-
-.big-char::placeholder {
-  color: rgba(224, 212, 247, 0.2);
-}
-
-/* 字句加解密页面 */
-.sentence-page {
-  margin: 0 1.5rem 0 3rem;
-  display: flex;
-  flex-direction: row;
-  gap: 0rem;
-  position: relative;
-  /* 为悬浮按钮提供定位基点 */
-}
-
-@media (max-width: 640px) {
-  .sentence-page {
-    margin: 0 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0rem;
-    position: relative;
-  }
-}
-
-.input-section {
-  /* max-width: 32rem; */
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  gap: 1rem;
-}
-
-.button-section {
-  min-width: 10%;   /* 设置最小宽度为10%，这里仅用于桌面 */
-  min-height: 20%;  /* 设置最小高度为20%，这里仅用于移动 */
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.side-btn-container {
-  display: flex; 
-  justify-content: center; 
-  gap: 2rem;
-}
-
-/* 悬浮清空按钮样式 */
-.fixed-clear-btn {
-  position: absolute;
-  right: -1.2rem;
-  /* top: 50%; */
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-
-  width: 3.5rem;
-  height: auto;
-  min-height: 5rem;
-  padding: 1.2rem 0.5rem;
-  border-radius: 1.2rem;
-
-  background: rgba(167, 139, 250, 0.08);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(167, 139, 250, 0.2);
-  color: #c4b5fd;
-
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  z-index: 10;
-}
-
-.fixed-clear-btn:hover {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #fff;
-  transform: scale(1.08);
-  box-shadow: 0 12px 40px rgba(239, 68, 68, 0.25);
-  right: -0.8rem;
-}
-
-.fixed-clear-btn:active {
-  transform: scale(0.98);
-}
-
-.fixed-clear-btn .clear-icon {
-  font-size: 1.4rem;
-  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.3));
-}
-
-.fixed-clear-btn:hover .clear-icon {
-  transform: rotate(-15deg) scale(1.1);
-}
-
-.fixed-clear-btn .clear-text {
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  opacity: 0.8;
-}
-
-/* 窄屏适配 */
-@media (max-width: 640px) {
-  .fixed-clear-btn {
-    right: -0.6rem;
-    width: 2.6rem;
-    min-height: 4.5rem;
-    padding: 0.8rem 0.3rem;
-    border-radius: 0.8rem;
-  }
-
-  .fixed-clear-btn:hover {
-    right: -0.4rem;
-  }
-
-  .fixed-clear-btn .clear-icon {
-    font-size: 1.1rem;
-  }
-
-  .fixed-clear-btn .clear-text {
-    font-size: 0.6rem;
-  }
-}
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #c4b5fd;
-  margin-left: 0.25rem;
-}
-
-.textarea {
-  flex: 1;
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 1rem;
-  font-size: 1rem;
-  font-family: inherit;
-  color: #e0d4f7;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(167, 139, 250, 0.35);
-  border-radius: 0.75rem;
-  resize: none;
-}
-
-.textarea:focus {
-  outline: none;
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
-}
-
-.input-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  align-items: stretch;
-  min-height: 120px;
-}
-
-.btn {
-  padding: 0.8rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
-  border: none;
-  border-radius: 2rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.side-btn {
-  width: 3.5rem;
-  flex-shrink: 0;
-  padding: 0.5rem;
-  border-radius: 0.75rem;
-  font-size: 0.85rem;
-  text-align: center;
-  line-height: 1.2;
-}
-
-.btn:active {
-  transform: scale(0.96);
-}
-
-.copy-btn {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-}
-
-.copy-btn:hover {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.5);
-}
-
-.paste-btn {
-  background: linear-gradient(135deg, #059669, #047857);
-  /* 用绿色区分解密 */
-}
-
-.paste-btn:hover {
-  background: linear-gradient(135deg, #10b981, #059669);
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.5);
-}
-
-/* 错误提示 */
-.error {
-  padding: 0.8rem;
-  font-size: 0.9rem;
-  color: #fca5a5;
-  background: rgba(185, 28, 28, 0.2);
-  border: 1px solid rgba(248, 113, 113, 0.4);
-  border-radius: 0.5rem;
-  text-align: center;
-}
-
-/* 底部导航 */
+/* Navigation */
 .bottom-nav {
-  flex-shrink: 0;
   display: flex;
-  background: rgba(88, 28, 135, 0.3);
-  border-top: 1px solid rgba(167, 139, 250, 0.25);
-  padding: 0.5rem;
+  background: var(--surface-color);
+  border-top: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
-  gap: 0.5rem;
 }
 
 .nav-btn {
@@ -774,60 +696,60 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.75rem 0.5rem;
+  padding: 0.5rem;
   background: transparent;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s;
-  color: #c4b5fd;
-  -webkit-tap-highlight-color: transparent;
+  transition: var(--transition);
 }
 
 .nav-btn:hover {
-  background: rgba(88, 28, 135, 0.5);
+  color: var(--text-primary);
+  background: var(--bg-color);
 }
 
 .nav-btn.active {
-  background: rgba(124, 58, 237, 0.3);
-  color: #e0d4f7;
-}
-
-.nav-icon {
-  font-size: 1.5rem;
+  color: var(--accent-color);
 }
 
 .nav-label {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
-/* 移动端适配 */
+/* Error */
+.error-toast {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 0.5rem;
+  color: var(--error-color);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* Responsive */
 @media (max-width: 640px) {
+  .big-char {
+    font-size: 8rem;
+  }
+
+  .single-card {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-height: 700px) {
   .big-char {
     font-size: 6rem;
   }
 
-  .cipher-text {
-    font-size: 1.6rem;
+  .single-card {
+    gap: 1rem;
+    padding: 1.5rem;
   }
-}
-
-@media (max-height: 600px) {
-  .big-char {
-    font-size: 5rem;
-  }
-}
-</style>
-
-<style>
-/* 全局重置 */
-html,
-body,
-#app {
-  margin: 0;
-  padding: 0;
-  height: 100vh;
-  overflow: hidden;
 }
 </style>
