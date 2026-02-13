@@ -601,7 +601,7 @@ body {
 /* Floating Clear */
 .floating-clear-btn {
   position: fixed;
-  bottom: 6rem;
+  bottom: calc(5.5rem + env(safe-area-inset-bottom));
   right: 1.5rem;
   width: 3.5rem;
   height: 3.5rem;
