@@ -18,6 +18,21 @@ const settings = ref({
 });
 const showSettingsMenu = ref(false);
 const settingsRef = ref<HTMLElement | null>(null);
+const navBarRef = ref<HTMLElement | null>(null);
+
+// 键盘偏移量（移动端适配）
+const keyboardOffset = ref(0);
+const updateKeyboardOffset = () => {
+  if (window.visualViewport) {
+    // 键盘升起时，visualViewport.height 会减小
+    // 计算相对于原生视口底部的偏移量
+    const totalOffset = window.innerHeight - window.visualViewport.height;
+
+    // 减去底部导航栏的高度，避免偏移过大
+    const navHeight = navBarRef.value?.offsetHeight || 0;
+    keyboardOffset.value = Math.max(0, totalOffset - navHeight);
+  }
+};
 
 // 页面 1：单字加解密状态
 const singlePlain = ref(""); // 大字输入
@@ -194,6 +209,12 @@ onMounted(() => {
   // listen click outside
   document.addEventListener('click', handleClickOutside);
 
+  // 监听键盘升起（通过 Visual Viewport）
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updateKeyboardOffset);
+    window.visualViewport.addEventListener('scroll', updateKeyboardOffset);
+  }
+
   // Initialize theme
   const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
   if (savedTheme) {
@@ -228,6 +249,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  if (window.visualViewport) {
+    window.visualViewport.removeEventListener('resize', updateKeyboardOffset);
+    window.visualViewport.removeEventListener('scroll', updateKeyboardOffset);
+  }
 });
 </script>
 
@@ -331,7 +356,8 @@ onUnmounted(() => {
           <div v-if="sentenceError" class="error-toast">{{ sentenceError }}</div>
 
           <!-- 固定清空按钮 -->
-          <button type="button" class="floating-clear-btn" @click="clearAll" title="清空全部">
+          <button type="button" class="floating-clear-btn" @click="clearAll" title="清空全部"
+            :style="{ transform: `translateY(-${keyboardOffset}px)` }">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path
@@ -343,7 +369,7 @@ onUnmounted(() => {
     </main>
 
     <!-- 底部导航 -->
-    <nav class="bottom-nav">
+    <nav class="bottom-nav" ref="navBarRef">
       <button type="button" class="nav-btn" :class="{ active: currentPage === 'single' }"
         @click="currentPage = 'single'">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -415,7 +441,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  /* max-width: 600px; */
+  max-width: 600px;
   margin: 0 auto;
   position: relative;
 }
