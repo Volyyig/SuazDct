@@ -441,7 +441,6 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  max-width: 600px;
   margin: 0 auto;
   position: relative;
 }
@@ -489,10 +488,19 @@ body {
   justify-content: center;
 }
 
-.icon-btn:hover {
+.icon-btn:active {
   background-color: var(--bg-color);
   color: var(--text-primary);
   border-color: var(--border-color);
+  opacity: 0.7;
+}
+
+@media (hover: hover) {
+  .icon-btn:hover {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+  }
 }
 
 /* Content */
@@ -619,9 +627,17 @@ body {
   transition: var(--transition);
 }
 
-.text-btn:hover {
+.text-btn:active {
   background: var(--bg-color);
   color: var(--accent-hover);
+  opacity: 0.7;
+}
+
+@media (hover: hover) {
+  .text-btn:hover {
+    background: var(--bg-color);
+    color: var(--accent-hover);
+  }
 }
 
 /* Floating Clear */
@@ -644,14 +660,18 @@ body {
   z-index: 100;
 }
 
-.floating-clear-btn:hover {
-  background: var(--accent-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+@media (hover: hover) {
+  .floating-clear-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+  }
 }
 
 .floating-clear-btn:active {
-  transform: scale(0.95);
+  transform: translateY(-2px) scale(0.95);
+  background: var(--accent-hover);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
 }
 
 /* Settings Menu */
@@ -698,8 +718,14 @@ textarea {
   transition: var(--transition);
 }
 
-.menu-label:hover {
+.menu-label:active {
   background: var(--bg-color);
+}
+
+@media (hover: hover) {
+  .menu-label:hover {
+    background: var(--bg-color);
+  }
 }
 
 .menu-text {
@@ -735,9 +761,11 @@ textarea {
   transition: var(--transition);
 }
 
-.nav-btn:hover {
-  color: var(--text-primary);
-  background: var(--bg-color);
+@media (hover: hover) {
+  .nav-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-color);
+  }
 }
 
 .nav-btn.active {
