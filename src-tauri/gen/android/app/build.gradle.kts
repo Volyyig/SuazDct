@@ -40,7 +40,15 @@ android {
     }
     buildTypes {
         getByName("debug") {
-            applicationIdSuffix = ".debug"
+            // 1. 自动给包名加后缀，例如变为 com.entlst.suazdct.dev
+            applicationIdSuffix = ".dev"
+            
+            // 2. 自动给应用名称加后缀，方便在手机桌面区分
+            // 
+            // 这会修改 src-tauri\gen\android\app\src\main\res\values\strings.xml 中 app_name 的值
+            // 从而改变了 AndroidManifest.xml 中 android:label 引用的 app_name
+            resValue("string", "app_name", "SuazDct (Dev)")
+
             manifestPlaceholders["usesCleartextTraffic"] = "true"
             isDebuggable = true
             isJniDebuggable = true
