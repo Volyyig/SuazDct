@@ -356,7 +356,7 @@ onUnmounted(() => {
           <div v-if="sentenceError" class="error-toast">{{ sentenceError }}</div>
 
           <!-- 固定清空按钮 -->
-          <button type="button" class="floating-clear-btn" @click="clearAll" title="清空全部"
+          <button type="button" class="floating-clear-btn" @click="clearAll" @mousedown.prevent title="清空全部"
             :style="{ transform: `translateY(-${keyboardOffset}px)` }">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
