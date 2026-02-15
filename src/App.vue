@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 
+import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
+
 const currentPage = ref<"single" | "sentence">("single");
 
 // Theme management
@@ -177,7 +179,7 @@ function clearAll() {
 async function copySentence(text: string) {
   if (!text) return;
   try {
-    await navigator.clipboard.writeText(text);
+    await writeText(text);
   } catch (e) {
     sentenceError.value = "复制失败";
   }
@@ -185,7 +187,7 @@ async function copySentence(text: string) {
 
 async function pasteSentence(type: 'plain' | 'cipher') {
   try {
-    const text = await navigator.clipboard.readText();
+    const text = await readText();
     if (type === 'plain') {
       sentencePlain.value += text;
       onSentencePlainInput();
@@ -282,8 +284,8 @@ onUnmounted(() => {
 
         <!-- 设置按钮 -->
         <div class="settings-container" ref="settingsRef">
-          <button type="button" class="icon-btn settings-btn" @click.stop="showSettingsMenu = !showSettingsMenu"
-            title="设置">
+          <button type="button" class="icon-btn settings-btn" :class="{ active: showSettingsMenu }"
+            @click.stop="showSettingsMenu = !showSettingsMenu" title="设置">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3" />
@@ -488,19 +490,20 @@ body {
   justify-content: center;
 }
 
-.icon-btn:active {
-  background-color: var(--bg-color);
-  color: var(--text-primary);
-  border-color: var(--border-color);
-  opacity: 0.7;
-}
-
 @media (hover: hover) {
   .icon-btn:hover {
     background-color: var(--bg-color);
     color: var(--text-primary);
     border-color: var(--border-color);
   }
+}
+
+
+.icon-btn.active {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+  opacity: 0.7;
 }
 
 /* Content */
