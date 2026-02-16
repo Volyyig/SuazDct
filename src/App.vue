@@ -19,6 +19,17 @@ const settings = ref({
   traditionalEnabled: true, // 默认启用繁体
   cipherFormat: 'space' as 'space' | '4-letter' | 'pascal' | 'camel' // 密文格式
 });
+
+// Watch settings and save to localStorage
+watch(settings, (newSettings) => {
+  localStorage.setItem("settings", JSON.stringify(newSettings));
+}, { deep: true });
+
+// Watch currentPage and save to localStorage
+watch(currentPage, (newPage) => {
+  localStorage.setItem("currentPage", newPage);
+});
+
 const showSettingsMenu = ref(false);
 const settingsRef = ref<HTMLElement | null>(null);
 const navBarRef = ref<HTMLElement | null>(null);
@@ -310,6 +321,23 @@ onMounted(() => {
     theme.value = "light";
   }
   document.documentElement.setAttribute("data-theme", theme.value);
+
+  // Initialize settings
+  const savedSettings = localStorage.getItem("settings");
+  if (savedSettings) {
+    try {
+      const parsed = JSON.parse(savedSettings);
+      settings.value = { ...settings.value, ...parsed };
+    } catch (e) {
+      console.error("Failed to parse saved settings", e);
+    }
+  }
+
+  // Initialize current page
+  const savedPage = localStorage.getItem("currentPage") as "single" | "sentence" | null;
+  if (savedPage) {
+    currentPage.value = savedPage;
+  }
 
   // 启动时随机显示一个字
   const rangeA = [0x3400, 0x4DBF];
