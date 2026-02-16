@@ -31,8 +31,6 @@ pnpm tauri dev
 # Android 端 (需连接设备)
 # 如果由于虚拟网卡 (Docker/WSL/VPN) 导致连接失败，请使用：
 pnpm dev:android
-# 或者原命令
-pnpm tauri android dev
 ```
 
 ## 使用
