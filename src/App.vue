@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -16,7 +16,8 @@ const toggleTheme = () => {
 
 // 设置
 const settings = ref({
-  traditionalEnabled: true  // 默认启用繁体
+  traditionalEnabled: true, // 默认启用繁体
+  cipherFormat: 'space' as 'space' | '4-letter' | 'pascal' | 'camel' // 密文格式
 });
 const showSettingsMenu = ref(false);
 const settingsRef = ref<HTMLElement | null>(null);
@@ -46,6 +47,95 @@ const sentencePlain = ref("");
 const sentenceCipher = ref("");
 const sentenceError = ref("");
 
+// Helper to format a space-separated cipher string into the desired format
+// Helper to format a parts array into the desired cipher string format
+const formatCipher = (parts: string[], format: 'space' | '4-letter' | 'pascal' | 'camel'): string => {
+  switch (format) {
+    case '4-letter':
+      return parts.join('');
+    case 'pascal':
+      return parts.map(p => {
+        // Only capitalize 4-letter codes, leave others (like punctuation) as is.
+        if (/^[a-z]{4}$/.test(p)) {
+          return p.charAt(0).toUpperCase() + p.slice(1);
+        }
+        return p;
+      }).join('');
+    case 'camel':
+      let firstCodeFound = false;
+      return parts.map(p => {
+        if (/^[a-z]{4}$/.test(p)) {
+          if (!firstCodeFound) {
+            firstCodeFound = true;
+            return p; // First code is lowercase
+          }
+          return p.charAt(0).toUpperCase() + p.slice(1);
+        }
+        return p;
+      }).join('');
+    case 'space':
+    default:
+      return parts.join(' ');
+  }
+};
+
+// Helper to preprocess any cipher input into a standardized array of parts for the backend
+const preprocessCipher = (input: string): string[] => {
+  if (!input) return [];
+
+  const result: string[] = [];
+  // Split into words (by spaces/symbols), preserving them
+  const words = input.split(/(\s+|[^a-zA-Z]+)/);
+
+  for (const word of words) {
+    if (!word) continue;
+
+    if (/^[a-zA-Z]+$/.test(word)) {
+      // Word consists of only letters. Check for concatenated codes.
+      // E.g. "AbcdEfgh" or "abcdefgh" or "Hello"
+
+      // If length is a multiple of 4 OR it contains PascalCase-looking blocks, 
+      // we try to treat it as codes.
+      if (word.length % 4 === 0 || /([A-Z][a-z]{3})/.test(word)) {
+        let i = 0;
+        let possible = true;
+        const temp: string[] = [];
+
+        while (i < word.length) {
+          const chunk = word.slice(i, i + 4);
+          if (chunk.length === 4 && /^[a-zA-Z]{4}$/.test(chunk)) {
+            temp.push(chunk.toLowerCase());
+            i += 4;
+          } else if (i === word.length) {
+            break;
+          } else {
+            possible = false;
+            break;
+          }
+        }
+
+        if (possible && temp.length > 0) {
+          result.push(...temp);
+        } else {
+          result.push(word);
+        }
+      } else {
+        result.push(word);
+      }
+    } else {
+      result.push(word);
+    }
+  }
+  return result;
+};
+
+// Watch for cipher format changes and reformat the cipher text through acting encrypting
+watch(() => settings.value.cipherFormat, () => {
+  if (sentencePlain.value) {
+    encryptSentence();
+  }
+});
+
 // 计算属性：当前页面标题
 const pageTitle = computed(() => {
   return currentPage.value === "single" ? "单字" : "字句";
@@ -66,12 +156,12 @@ async function onSinglePlainInput() {
 
   try {
     // 调用加密，获取 (密文, 处理后的原文)
-    const [cipher, processed] = await invoke<[string, string]>("encrypt_text", {
+    const [cipherParts, processed] = await invoke<[Array<string>, string]>("encrypt_text", {
       plain: singlePlain.value,
       useTraditional: settings.value.traditionalEnabled
     });
 
-    singleCipher.value = cipher;
+    singleCipher.value = formatCipher(cipherParts, 'space');
     // 更新原文为处理后的（如繁体）
     if (processed !== singlePlain.value) {
       singlePlain.value = processed;
@@ -98,8 +188,8 @@ async function onSingleCipherInput() {
   if (cleanCipher.length >= 4) {
     try {
       // 截取前4个
-      const toDecrypt = cleanCipher.substring(0, 4);
-      const decrypted = await invoke<string>("decrypt_text", { cipher: toDecrypt });
+      const toDecrypt = [cleanCipher.substring(0, 4)];
+      const decrypted = await invoke<string>("decrypt_text", { cipherParts: toDecrypt });
       singlePlain.value = decrypted; // 解密出的字
     } catch (e) {
       // 解密失败暂不报错，可能是输入中
@@ -113,11 +203,12 @@ async function encryptSentence() {
   if (!sentencePlain.value.trim()) return;
 
   try {
-    const [cipher, processed] = await invoke<[string, string]>("encrypt_text", {
+    const [cipherParts, processed] = await invoke<[Array<string>, string]>("encrypt_text", {
       plain: sentencePlain.value,
       useTraditional: settings.value.traditionalEnabled
     });
-    sentenceCipher.value = cipher;
+
+    sentenceCipher.value = formatCipher(cipherParts, settings.value.cipherFormat);
     sentencePlain.value = processed; // 回显繁体
   } catch (e) {
     sentenceError.value = String(e);
@@ -130,16 +221,10 @@ async function decryptSentence() {
   if (!sentenceCipher.value.trim()) return;
 
   try {
-    // 自动分组逻辑
-    const input = sentenceCipher.value;
-    const processed = input.replace(/([a-z]+)/g, (match) => {
-      if (match.length % 4 === 0 && match.length >= 4) {
-        return match.match(/.{1,4}/g)?.join(" ") || match;
-      }
-      return match;
-    });
+    // Preprocess the cipher text to a standardized array of parts
+    const parts = preprocessCipher(sentenceCipher.value);
 
-    const decrypted = await invoke<string>("decrypt_text", { cipher: processed });
+    const decrypted = await invoke<string>("decrypt_text", { cipherParts: parts });
     sentencePlain.value = decrypted;
   } catch (e) {
     sentenceError.value = String(e);
@@ -301,6 +386,28 @@ onUnmounted(() => {
                 <input type="checkbox" v-model="settings.traditionalEnabled" class="menu-checkbox" />
                 <span class="menu-text">繁体启用</span>
               </label>
+            </div>
+            <div class="menu-separator"></div>
+            <div class="menu-item">
+              <div class="menu-group-title">密文格式</div>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" v-model="settings.cipherFormat" value="space" class="menu-radio" />
+                  <span class="radio-text">空格分割</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" v-model="settings.cipherFormat" value="4-letter" class="menu-radio" />
+                  <span class="radio-text">4字母</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" v-model="settings.cipherFormat" value="pascal" class="menu-radio" />
+                  <span class="radio-text">大驼峰</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" v-model="settings.cipherFormat" value="camel" class="menu-radio" />
+                  <span class="radio-text">小驼峰</span>
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -720,6 +827,47 @@ textarea {
   border-radius: 0.5rem;
   transition: var(--transition);
 }
+
+.menu-separator {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 0.5rem 0;
+}
+
+.menu-group-title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: 0.5rem 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0 0.75rem 0.5rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  cursor: pointer;
+}
+
+.radio-text {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.menu-checkbox,
+.menu-radio {
+  accent-color: var(--accent-color);
+}
+
 
 .menu-label:active {
   background: var(--bg-color);

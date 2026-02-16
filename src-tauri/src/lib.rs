@@ -22,7 +22,7 @@ fn release_window(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
-fn encrypt_text(plain: &str, use_traditional: bool) -> Result<(String, String), String> {
+fn encrypt_text(plain: &str, use_traditional: bool) -> Result<(Vec<String>, String), String> {
     let uni_az = UniAz::new();
 
     // 如果启用繁体，先转换简体到繁体
@@ -32,42 +32,54 @@ fn encrypt_text(plain: &str, use_traditional: bool) -> Result<(String, String), 
         plain.to_string()
     };
 
-    let parts: Vec<String> = text_to_encrypt
-        .chars()
-        .map(|c| {
-            if is_chinese(c) {
-                uni_az.encrypt(c)
-            } else {
-                c.to_string()
-            }
-        })
-        .collect();
+    let mut parts = Vec::new();
+    let mut non_chinese_buffer = String::new();
 
-    // 使用空格分隔（与新版 uniaz API 保持一致）
-    // 返回 (密文, 处理后的原文)
-    Ok((parts.join(" "), text_to_encrypt))
+    for c in text_to_encrypt.chars() {
+        if is_chinese(c) {
+            // 先刷新非中文缓冲区
+            if !non_chinese_buffer.is_empty() {
+                parts.push(non_chinese_buffer.clone());
+                non_chinese_buffer.clear();
+            }
+            parts.push(uni_az.encrypt(c));
+        } else {
+            non_chinese_buffer.push(c);
+        }
+    }
+
+    // 处理最后的剩余字符
+    if !non_chinese_buffer.is_empty() {
+        parts.push(non_chinese_buffer);
+    }
+
+    // 返回 (密文列表, 处理后的原文)
+    Ok((parts, text_to_encrypt))
 }
 
 #[tauri::command]
-fn decrypt_text(cipher: &str) -> Result<String, String> {
+fn decrypt_text(cipher_parts: Vec<String>) -> Result<String, String> {
     let uni_az = UniAz::new();
     let mut result = String::new();
-    for part in cipher.split(' ') {
+
+    for part in cipher_parts {
         if part.is_empty() {
             continue;
         }
-        // 尝试解密
-        match uni_az.decrypt(part) {
-            Ok(ch) => result.push(ch),
-            Err(_) => {
-                // 如果解密失败，可能是非加密的字符，尝试直接添加
-                // 假设非加密部分是单字符
-                if part.len() == 1 {
-                    result.push_str(part);
-                } else {
-                    return Err(format!("解密失败：无效的密文段 '{}'", part));
+
+        // 尝试作为密文解密（UniAz 密文通常是固定长度的字母组合，如4位）
+        // 如果长度不是4或者包含非字母，则很可能是原文直接保留的部分
+        if part.len() == 4 && part.chars().all(|c| c.is_ascii_lowercase()) {
+            match uni_az.decrypt(&part) {
+                Ok(ch) => result.push(ch),
+                Err(_) => {
+                    // 如果虽然符合格式但解密失败（库没找到对应字符），也作为原文保留
+                    result.push_str(&part);
                 }
             }
+        } else {
+            // 直接作为原文拼接
+            result.push_str(&part);
         }
     }
     Ok(result)
