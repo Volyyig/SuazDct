@@ -3,6 +3,7 @@ import subprocess
 import os
 import re
 import sys
+import time
 
 def get_lan_ip():
     """
@@ -91,31 +92,159 @@ def get_lan_ip():
     
     return valid_ips[0]
 
-def run_dev():
-    ip = get_lan_ip()
+def run_command(command, check=True, capture_output=False):
+    """ 运行一个命令并处理输出 """
+    print(f"\n>>> 执行: {command}")
+    try:
+        result = subprocess.run(command, check=check, shell=True, text=True, capture_output=capture_output, encoding='utf-8')
+        return result
+    except subprocess.CalledProcessError as e:
+        print(f"[-] 命令执行失败: {e}")
+        if e.stdout:
+            print(f"[stdout]:\n{e.stdout}")
+        if e.stderr:
+            print(f"[stderr]:\n{e.stderr}")
+        return None
+    except FileNotFoundError:
+        # command is a string here, so we split it to get the command name
+        cmd_name = command.split()[0]
+        print(f"[-] 命令未找到: {cmd_name}。请确保相关工具已安装并加入 PATH。")
+        return None
+
+def get_adb_path():
+    """ 从 ANDROID_HOME 环境变量中获取 adb 的完整路径 """
+    android_home = os.environ.get("ANDROID_HOME")
+    if not android_home:
+        print("[-] 错误: 未找到 ANDROID_HOME 环境变量。请确保已正确配置安卓开发环境。")
+        return None
     
+    adb_path = os.path.join(android_home, "platform-tools", "adb.exe" if os.name == 'nt' else "adb")
+    
+    if not os.path.exists(adb_path):
+        print(f"[-] 错误: 在 {adb_path} 未找到 adb。请检查 ANDROID_HOME 设置是否正确。")
+        return None
+        
+    print(f"[+] 成功定位 adb: {adb_path}")
+    return adb_path
+
+def get_device_arch(adb_path):
+    """ 获取连接设备的 CPU 架构并映射到 Rust 目标 """
+    print("\n>>> 正在检测设备架构...")
+    result = run_command(f'"{adb_path}" shell getprop ro.product.cpu.abi', capture_output=True)
+    if not result or not result.stdout:
+        print("[-] 无法获取设备架构，将使用默认构建目标。")
+        return None
+    
+    abi = result.stdout.strip()
+    print(f"[i] 设备 ABI: {abi}")
+    
+    arch_map = {
+        "arm64-v8a": "aarch64",
+        "armeabi-v7a": "armv7",
+        "x86_64": "x86_64",
+        "x86": "i686"
+    }
+    
+    target = arch_map.get(abi)
+    if target:
+        print(f"[+] 映射到 Rust 目标: {target}")
+    else:
+        print(f"[-] 未知的 ABI: {abi}，将不指定特定目标。")
+        
+    return target
+
+def run_dev():
+    adb_path = get_adb_path()
+    if not adb_path:
+        sys.exit(1)
+
+    ip = get_lan_ip()
     if ip == "0.0.0.0":
         print("[-] 错误: 无法确定有效的 IP 地址，请检查网络连接。")
         sys.exit(1)
 
     print(f"\n[√] 最终选用 IP: {ip}")
-    print(">>> 正在启动 Tauri 安卓调试服务...")
-    print(">>> 强制使用 --host 参数并设置 TAURI_DEV_HOST 环境变量以避开虚拟网卡干扰\n")
 
-    # 设置环境变量，确保 Vite 和 Tauri 都能识别
-    os.environ["TAURI_DEV_HOST"] = ip
+    dev_server_process = None
+    logcat_process = None
 
-    # 执行命令
-    # 注意：Tauri v2 的 android dev 支持 --host 参数
-    cmd = f"pnpm tauri android dev --host {ip}"
-    
     try:
-        # 使用 subprocess.run 保持交互性
-        subprocess.run(cmd, shell=True)
+        # 1. 在后台启动 Vite 开发服务器
+        print("\n>>> 步骤 1/8: 启动前端开发服务器...")
+        dev_server_cmd = f"pnpm dev --host {ip}"
+        dev_server_process = subprocess.Popen(dev_server_cmd, shell=True)
+        print(f"[+] 前端服务已在后台启动 (PID: {dev_server_process.pid})。等待服务器就绪...")
+        time.sleep(5) # 等待 Vite 启动
+
+        # 2. 获取设备架构
+        target_arch = get_device_arch(adb_path)
+
+        # 3. 构建调试版的 Android 应用
+        print("\n>>> 步骤 3/8: 构建调试版 Android 应用...")
+        build_cmd = "pnpm tauri android build --debug"
+        if target_arch:
+            build_cmd += f" --target {target_arch}"
+        if not run_command(build_cmd):
+            sys.exit(1)
+
+        # 4. 安装调试包
+        print("\n>>> 步骤 4/8: 安装调试版应用...")
+        # 路径->实际存储路径 映射
+        arch_path_map = {"aarch64": "arm64"}    # TODO: 其它架构待办
+        arch_mapped = arch_path_map[target_arch]
+        apk_path = f"src-tauri/gen/android/app/build/outputs/apk/{arch_mapped}/debug/app-{arch_mapped}-debug.apk"
+        if not run_command(f'"{adb_path}" install -r "{apk_path}"' ):
+            print("[-] 请确保您的安卓设备已通过 USB 调试模式连接，并已授权。")
+            sys.exit(1)
+
+        # 5. 端口转发
+        print("\n>>> 步骤 5/8: 设置端口转发...")
+        run_command(f'\"{adb_path}\" reverse --remove-all', check=False)
+        if not run_command(f'\"{adb_path}\" reverse tcp:1420 tcp:1420'):
+            sys.exit(1)
+
+        # 6. 启动开发包
+        print("\n>>> 步骤 6/8: 启动开发版应用...")
+        package_name = "com.entlst.suazdct.dev"
+        activity_name = "com.entlst.suazdct.MainActivity"
+        if not run_command(f'\"{adb_path}\" shell am start -n {package_name}/{activity_name}'):
+            sys.exit(1)
+        print(f"[+] 已启动应用: {package_name}")
+
+        # 7. 获取应用的 PID
+        print("\n>>> 步骤 7/8: 获取应用 PID...")
+        time.sleep(2) # 等待应用进程完全启动
+        pid_result = run_command(f'\"{adb_path}\" shell pidof {package_name}', capture_output=True)
+        
+        app_pid = None
+        if pid_result and pid_result.stdout:
+            # pidof 在某些系统上可能返回多个 PID，取第一个
+            app_pid = pid_result.stdout.strip().split()[0]
+
+        # 8. 打印日志
+        if app_pid and app_pid.isdigit():
+            print(f"[+] 获取到应用 PID: {app_pid}")
+            print("\n>>> 步骤 8/8: 实时显示应用日志 (按 Ctrl+C 停止)...")
+            logcat_cmd = f'\"{adb_path}\" logcat --pid={app_pid}'
+        else:
+            print("[-] 未能获取应用 PID，将回退到基于标签的日志过滤（可能不包含触摸事件）。")
+            print("\n>>> 步骤 8/8: 实时显示应用日志 (按 Ctrl+C 停止)...")
+            logcat_cmd = f'\"{adb_path}\" logcat Tauri:V RustStdoutStderr:V Webview:D chromium:D *:S'
+
+        logcat_process = subprocess.Popen(logcat_cmd, shell=True)
+        logcat_process.wait()
+
     except KeyboardInterrupt:
-        print("\n[i] 调试已由用户停止")
-    except Exception as e:
-        print(f"[-] 运行出错: {e}")
+        print("\n[i] 用户请求停止调试...")
+    finally:
+        print("\n>>> 正在清理后台进程...")
+        if logcat_process and logcat_process.poll() is None:
+            logcat_process.terminate()
+            print("[+] adb logcat 已停止。")
+        if dev_server_process and dev_server_process.poll() is None:
+            dev_server_process.terminate()
+            print("[+] 前端开发服务器已停止。")
+        print("[√] 清理完成。")
 
 if __name__ == "__main__":
     run_dev()
