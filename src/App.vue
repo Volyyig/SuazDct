@@ -22,7 +22,7 @@ const { theme, settings, currentPage, toggleTheme, initSettings } = useSettings(
 const pageTitle = computed(() => (currentPage.value === 'single' ? '单字' : '字句'));
 
 // 移动端键盘偏移
-const navBarRef = ref<HTMLElement | null>(null);
+const navBarRef = ref<any>(null);
 const { keyboardOffset } = useKeyboardOffset(navBarRef);
 
 onMounted(() => {
@@ -33,12 +33,7 @@ onMounted(() => {
 
 <template>
   <div class="app">
-    <AppHeader
-      :page-title="pageTitle"
-      :theme="theme"
-      v-model:settings="settings"
-      @toggle-theme="toggleTheme"
-    />
+    <AppHeader :page-title="pageTitle" :theme="theme" v-model:settings="settings" @toggle-theme="toggleTheme" />
 
     <main class="content">
       <SinglePage v-show="currentPage === 'single'" :settings="settings" />
