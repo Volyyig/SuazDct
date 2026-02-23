@@ -58,6 +58,77 @@ const sentencePlain = ref("");
 const sentenceCipher = ref("");
 const sentenceError = ref("");
 
+// --- 历史管理 (仅字句页面) ---
+const sentenceHistory = ref<{ plain: string; cipher: string }[]>([]);
+const sentenceHistoryIndex = ref(-1);
+let isUndoingRedoing = false;
+
+const saveHistory = () => {
+  if (isUndoingRedoing) return;
+
+  const currentState = { plain: sentencePlain.value, cipher: sentenceCipher.value };
+  const lastState = sentenceHistory.value[sentenceHistoryIndex.value];
+
+  // 如果状态没变，就不保存
+  if (lastState && lastState.plain === currentState.plain && lastState.cipher === currentState.cipher) {
+    return;
+  }
+
+  // 如果在中间做了新改动，切断后面的 redo 链
+  if (sentenceHistoryIndex.value < sentenceHistory.value.length - 1) {
+    sentenceHistory.value = sentenceHistory.value.slice(0, sentenceHistoryIndex.value + 1);
+  }
+
+  sentenceHistory.value.push(currentState);
+  if (sentenceHistory.value.length > 50) {
+    sentenceHistory.value.shift();
+  } else {
+    sentenceHistoryIndex.value++;
+  }
+};
+
+const undoSentence = () => {
+  if (sentenceHistoryIndex.value > 0) {
+    if (sentenceTimer) clearTimeout(sentenceTimer);
+    isUndoingRedoing = true;
+    sentenceHistoryIndex.value--;
+    const state = sentenceHistory.value[sentenceHistoryIndex.value];
+    sentencePlain.value = state.plain;
+    sentenceCipher.value = state.cipher;
+    showToast("已撤销");
+    setTimeout(() => { isUndoingRedoing = false; }, 200); // 100ms timer buffer
+  }
+};
+
+const redoSentence = () => {
+  if (sentenceHistoryIndex.value < sentenceHistory.value.length - 1) {
+    if (sentenceTimer) clearTimeout(sentenceTimer);
+    isUndoingRedoing = true;
+    sentenceHistoryIndex.value++;
+    const state = sentenceHistory.value[sentenceHistoryIndex.value];
+    sentencePlain.value = state.plain;
+    sentenceCipher.value = state.cipher;
+    showToast("已重做");
+    setTimeout(() => { isUndoingRedoing = false; }, 200);
+  }
+};
+
+// --- 反馈提示 (Toast) ---
+const toast = ref({
+  message: "",
+  visible: false,
+  timer: null as any
+});
+
+const showToast = (message: string) => {
+  toast.value.message = message;
+  toast.value.visible = true;
+  if (toast.value.timer) clearTimeout(toast.value.timer);
+  toast.value.timer = setTimeout(() => {
+    toast.value.visible = false;
+  }, 2000);
+};
+
 // Helper to format a space-separated cipher string into the desired format
 // Helper to format a parts array into the desired cipher string format
 const formatCipher = (parts: string[], format: 'space' | '4-letter' | 'first-upper' | 'pascal' | 'camel'): string => {
@@ -221,6 +292,7 @@ async function encryptSentence() {
 
     sentenceCipher.value = formatCipher(cipherParts, settings.value.cipherFormat);
     sentencePlain.value = processed; // 回显繁体
+    saveHistory();
   } catch (e) {
     sentenceError.value = String(e);
   }
@@ -237,6 +309,7 @@ async function decryptSentence() {
 
     const decrypted = await invoke<string>("decrypt_text", { cipherParts: parts });
     sentencePlain.value = decrypted;
+    saveHistory();
   } catch (e) {
     sentenceError.value = String(e);
   }
@@ -266,6 +339,8 @@ function clearAll() {
   sentencePlain.value = "";
   sentenceCipher.value = "";
   sentenceError.value = "";
+  saveHistory();
+  showToast("已清空");
 }
 
 // 剪贴板功能
@@ -273,6 +348,7 @@ async function copySentence(text: string) {
   if (!text) return;
   try {
     await writeText(text);
+    showToast("已复制");
   } catch (e) {
     sentenceError.value = "复制失败";
   }
@@ -288,6 +364,7 @@ async function pasteSentence(type: 'plain' | 'cipher') {
       sentenceCipher.value += text;
       onSentenceCipherInput();
     }
+    showToast("已粘贴");
   } catch (e) {
     sentenceError.value = "粘贴失败";
   }
@@ -354,6 +431,9 @@ onMounted(() => {
   const randomChar = String.fromCodePoint(randomCodePoint);
   singlePlain.value = randomChar;
   onSinglePlainInput();
+
+  // 初始化历史
+  saveHistory();
 
   // invoke window
   invoke("release_window");
@@ -470,6 +550,10 @@ onUnmounted(() => {
             <div class="card-header">
               <span class="card-title">原文</span>
               <div class="card-actions">
+                <button @click="undoSentence" :disabled="sentenceHistoryIndex <= 0" class="text-btn"
+                  :class="{ disabled: sentenceHistoryIndex <= 0 }">撤销</button>
+                <button @click="redoSentence" :disabled="sentenceHistoryIndex >= sentenceHistory.length - 1"
+                  class="text-btn" :class="{ disabled: sentenceHistoryIndex >= sentenceHistory.length - 1 }">重做</button>
                 <button @click="copySentence(sentencePlain)" class="text-btn">复制</button>
                 <button @click="pasteSentence('plain')" class="text-btn">粘贴</button>
               </div>
@@ -483,6 +567,10 @@ onUnmounted(() => {
             <div class="card-header">
               <span class="card-title">密文</span>
               <div class="card-actions">
+                <button @click="undoSentence" :disabled="sentenceHistoryIndex <= 0" class="text-btn"
+                  :class="{ disabled: sentenceHistoryIndex <= 0 }">撤销</button>
+                <button @click="redoSentence" :disabled="sentenceHistoryIndex >= sentenceHistory.length - 1"
+                  class="text-btn" :class="{ disabled: sentenceHistoryIndex >= sentenceHistory.length - 1 }">重做</button>
                 <button @click="copySentence(sentenceCipher)" class="text-btn">复制</button>
                 <button @click="pasteSentence('cipher')" class="text-btn">粘贴</button>
               </div>
@@ -529,6 +617,13 @@ onUnmounted(() => {
         <span class="nav-label">字句</span>
       </button>
     </nav>
+
+    <!-- 反馈提示 -->
+    <Transition name="toast-fade">
+      <div v-if="toast.visible" class="toast-feedback">
+        {{ toast.message }}
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -773,10 +868,48 @@ body {
 }
 
 @media (hover: hover) {
-  .text-btn:hover {
+  .text-btn:hover:not(:disabled) {
     background: var(--bg-color);
     color: var(--accent-hover);
   }
+}
+
+.text-btn.disabled,
+.text-btn:disabled {
+  color: var(--text-secondary);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Toast Feedback */
+.toast-feedback {
+  position: fixed;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 2rem;
+  font-size: 0.875rem;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+[data-theme="light"] .toast-feedback {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 10px);
 }
 
 /* Floating Clear */
