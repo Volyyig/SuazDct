@@ -159,12 +159,36 @@ saveHistory({ plain: '', cipher: '' });
         <div class="card-header">
           <span class="card-title">原文</span>
           <div class="card-actions">
-            <button @click="handleUndo" :disabled="!canUndo()" class="text-btn"
-              :class="{ disabled: !canUndo() }">撤销</button>
-            <button @click="handleRedo" :disabled="!canRedo()" class="text-btn"
-              :class="{ disabled: !canRedo() }">重做</button>
-            <button @click="handleCopy(plain)" class="text-btn">复制</button>
-            <button @click="handlePaste('plain')" class="text-btn">粘贴</button>
+            <button @click="handleUndo" :disabled="!canUndo()" class="text-btn" :class="{ disabled: !canUndo() }"
+              title="撤销">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+            </button>
+            <button @click="handleRedo" :disabled="!canRedo()" class="text-btn" :class="{ disabled: !canRedo() }"
+              title="重做">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+            </button>
+            <button @click="handleCopy(plain)" class="text-btn" title="复制">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+              </svg>
+            </button>
+            <button @click="handlePaste('plain')" class="text-btn" title="粘贴">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+              </svg>
+            </button>
           </div>
         </div>
         <textarea v-model="plain" class="pure-textarea" placeholder="输入原文..." rows="4" @input="onPlainInput" />
@@ -175,12 +199,36 @@ saveHistory({ plain: '', cipher: '' });
         <div class="card-header">
           <span class="card-title">密文</span>
           <div class="card-actions">
-            <button @click="handleUndo" :disabled="!canUndo()" class="text-btn"
-              :class="{ disabled: !canUndo() }">撤销</button>
-            <button @click="handleRedo" :disabled="!canRedo()" class="text-btn"
-              :class="{ disabled: !canRedo() }">重做</button>
-            <button @click="handleCopy(cipher)" class="text-btn">复制</button>
-            <button @click="handlePaste('cipher')" class="text-btn">粘贴</button>
+            <button @click="handleUndo" :disabled="!canUndo()" class="text-btn" :class="{ disabled: !canUndo() }"
+              title="撤销">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+            </button>
+            <button @click="handleRedo" :disabled="!canRedo()" class="text-btn" :class="{ disabled: !canRedo() }"
+              title="重做">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+            </button>
+            <button @click="handleCopy(cipher)" class="text-btn" title="复制">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+              </svg>
+            </button>
+            <button @click="handlePaste('cipher')" class="text-btn" title="粘贴">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+              </svg>
+            </button>
           </div>
         </div>
         <textarea v-model="cipher" class="pure-textarea" placeholder="输入密文..." rows="4" @input="onCipherInput" />
@@ -267,9 +315,12 @@ saveHistory({ plain: '', cipher: '' });
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
+  padding: 0.4rem;
+  border-radius: 0.5rem;
   transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .text-btn:active {
