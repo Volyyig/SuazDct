@@ -266,9 +266,6 @@ function clearAll() {
   sentencePlain.value = "";
   sentenceCipher.value = "";
   sentenceError.value = "";
-  singlePlain.value = "";
-  singleCipher.value = "";
-  singleError.value = "";
 }
 
 // 剪贴板功能
@@ -492,7 +489,7 @@ onUnmounted(() => {
 
           <div v-if="sentenceError" class="error-toast">{{ sentenceError }}</div>
 
-          <!-- 固定清空按钮 -->
+          <!-- 清空按钮 -->
           <button type="button" class="floating-clear-btn" @click="clearAll" @mousedown.prevent title="清空全部"
             :style="{ transform: `translateY(-${keyboardOffset}px)` }">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
