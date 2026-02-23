@@ -17,7 +17,7 @@ const toggleTheme = () => {
 // 设置
 const settings = ref({
   traditionalEnabled: true, // 默认启用繁体
-  cipherFormat: 'space' as 'space' | '4-letter' | 'pascal' | 'camel' // 密文格式
+  cipherFormat: 'space' as 'space' | '4-letter' | 'first-upper' | 'pascal' | 'camel' // 密文格式
 });
 
 // Watch settings and save to localStorage
@@ -60,34 +60,34 @@ const sentenceError = ref("");
 
 // Helper to format a space-separated cipher string into the desired format
 // Helper to format a parts array into the desired cipher string format
-const formatCipher = (parts: string[], format: 'space' | '4-letter' | 'pascal' | 'camel'): string => {
-  switch (format) {
-    case '4-letter':
-      return parts.join('');
-    case 'pascal':
-      return parts.map(p => {
-        // Only capitalize 4-letter codes, leave others (like punctuation) as is.
-        if (/^[a-z]{4}$/.test(p)) {
-          return p.charAt(0).toUpperCase() + p.slice(1);
-        }
-        return p;
-      }).join('');
-    case 'camel':
-      let firstCodeFound = false;
-      return parts.map(p => {
-        if (/^[a-z]{4}$/.test(p)) {
-          if (!firstCodeFound) {
-            firstCodeFound = true;
-            return p; // First code is lowercase
-          }
-          return p.charAt(0).toUpperCase() + p.slice(1);
-        }
-        return p;
-      }).join('');
-    case 'space':
-    default:
-      return parts.join(' ');
+const formatCipher = (parts: string[], format: 'space' | '4-letter' | 'first-upper' | 'pascal' | 'camel'): string => {
+  if (format === 'space') return parts.join(' ');
+
+  let result = "";
+  let isNewWord = true;
+
+  for (const part of parts) {
+    const isCode = /^[a-z]{4}$/.test(part);
+    if (isCode) {
+      let formatted = part;
+      if (format === 'first-upper') {
+        if (isNewWord) formatted = part.charAt(0).toUpperCase() + part.slice(1);
+      } else if (format === 'pascal') {
+        formatted = part.charAt(0).toUpperCase() + part.slice(1);
+      } else if (format === 'camel') {
+        if (!isNewWord) formatted = part.charAt(0).toUpperCase() + part.slice(1);
+      }
+      result += formatted;
+      isNewWord = false;
+    } else {
+      result += part;
+      // Reset word flag if we hit a whitespace
+      if (/\s/.test(part)) {
+        isNewWord = true;
+      }
+    }
   }
+  return result;
 };
 
 // Helper to preprocess any cipher input into a standardized array of parts for the backend
@@ -417,12 +417,16 @@ onUnmounted(() => {
               <div class="menu-group-title">密文格式</div>
               <div class="radio-group">
                 <label class="radio-label">
+                  <input type="radio" v-model="settings.cipherFormat" value="4-letter" class="menu-radio" />
+                  <span class="radio-text">默认</span>
+                </label>
+                <label class="radio-label">
                   <input type="radio" v-model="settings.cipherFormat" value="space" class="menu-radio" />
                   <span class="radio-text">空格分割</span>
                 </label>
                 <label class="radio-label">
-                  <input type="radio" v-model="settings.cipherFormat" value="4-letter" class="menu-radio" />
-                  <span class="radio-text">4字母</span>
+                  <input type="radio" v-model="settings.cipherFormat" value="first-upper" class="menu-radio" />
+                  <span class="radio-text">首字大写</span>
                 </label>
                 <label class="radio-label">
                   <input type="radio" v-model="settings.cipherFormat" value="pascal" class="menu-radio" />
