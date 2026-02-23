@@ -6,6 +6,7 @@ import { encryptText, decryptText, formatCipher } from '../utils/cipher';
 import { useHistory } from '../composables/useHistory';
 import { useClipboard } from '../composables/useClipboard';
 import { useToast } from '../composables/useToast';
+import ToastFeedback from './ToastFeedback.vue';
 
 const props = defineProps<{
   settings: Settings;
@@ -198,11 +199,7 @@ saveHistory({ plain: '', cipher: '' });
     </div>
 
     <!-- 页面级 Toast -->
-    <Transition name="toast-fade">
-      <div v-if="toastVisible" class="toast-inner">
-        {{ toastMessage }}
-      </div>
-    </Transition>
+    <ToastFeedback :message="toastMessage" :visible="toastVisible" :keyboard-offset="keyboardOffset" />
   </div>
 </template>
 
@@ -339,30 +336,14 @@ saveHistory({ plain: '', cipher: '' });
   text-align: center;
 }
 
-/* 页面级 Toast */
-.toast-inner {
-  position: fixed;
-  bottom: 120px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 0.6rem 1.2rem;
-  border-radius: 2rem;
+.error-toast {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 0.5rem;
+  color: var(--error-color);
   font-size: 0.875rem;
-  z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  pointer-events: none;
-}
-
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.toast-fade-enter-from,
-.toast-fade-leave-to {
-  opacity: 0;
-  transform: translate(-50%, 10px);
+  text-align: center;
 }
 </style>
