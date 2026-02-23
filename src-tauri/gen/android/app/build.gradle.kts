@@ -41,7 +41,8 @@ android {
     buildTypes {
         getByName("debug") {
             // 1. 自动给包名加后缀，例如变为 com.entlst.suazdct.dev
-            applicationIdSuffix = ".dev"
+            // --- 放弃 Dev包和Release包共存的方案 ---
+            // applicationIdSuffix = ".dev"
             
             // 2. 自动给应用名称加后缀，方便在手机桌面区分
             // 
