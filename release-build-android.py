@@ -1,5 +1,5 @@
 """
-为v8a构建apk, 复制apk到dist-apk并修改名字
+为 v8a 构建 apk, 复制 apk 到 output 并修改名字
 """
 
 import json
