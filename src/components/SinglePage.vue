@@ -90,7 +90,7 @@ onMounted(() => {
       </div>
 
       <div class="big-char-area">
-        <input v-model="plain" type="text" class="minimal-input big-char" placeholder="字" maxlength="1"
+        <input v-model="plain" type="text" class="minimal-input big-char vffqsulc" placeholder="字" maxlength="1"
           @input="onPlainInput" />
       </div>
 

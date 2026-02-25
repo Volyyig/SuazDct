@@ -1,5 +1,13 @@
 /** 全局基础样式 */
 
+@font-face {
+    font-family: 'NotoSansTC';
+    src: url('../fonts/NotoSansTC-VariableFont_wght.ttf') format('truetype-variations');
+    font-display: swap;
+    font-weight: 100 900;
+    font-style: normal;
+}
+
 * {
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
@@ -20,4 +28,28 @@ input,
 textarea {
     user-select: text;
     -webkit-user-select: text;
+}
+
+/* 强制表单元素继承字体 */
+/* input,
+button,
+textarea,
+select {
+    font-family: 'NotoSansTC';
+} */
+
+
+.vffqsulc {
+  /* 套用剛才定義的名字 */
+  font-family: 'NotoSansTC', sans-serif;
+
+  /* 設定一個預設粗細（400 是標準 Regular） */
+  font-weight: 200;
+
+  /* 針對舊版引擎的保險寫法（選填，但推薦） */
+  font-variation-settings: 'wght' 200;
+
+  /* 平滑化字體渲染（在 Tauri/WebView2 上效果很好） */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
