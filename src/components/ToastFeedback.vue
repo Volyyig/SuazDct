@@ -46,6 +46,6 @@ withDefaults(defineProps<{
 .toast-fade-enter-from,
 .toast-fade-leave-to {
   opacity: 0;
-  transform: translate(-50%, 10px) !important;
+  transform: translate(-50%, 10px);
 }
 </style>
