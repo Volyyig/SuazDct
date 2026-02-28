@@ -11,19 +11,35 @@ const props = defineProps<{
 const plain = ref('');
 const cipher = ref('');
 const error = ref('');
+let oldPlain = '';
 
 /** 处理原文输入 —— 加密单个汉字 */
-async function onPlainInput() {
+async function onPlainInput(event?: Event) {
   error.value = '';
   if (!plain.value) {
     cipher.value = '';
+    oldPlain = '';
     return;
   }
 
+  const chars = [...plain.value];
+
   // 限制为 1 个字符
-  if (plain.value.length > 1) {
-    plain.value = plain.value[0];
+  if (chars.length > 1) {
+    const e = event as InputEvent;
+    if (e && e.data) {
+      plain.value = [...e.data][0];
+    } else {
+      if (oldPlain && plain.value.includes(oldPlain)) {
+        const added = plain.value.replace(oldPlain, '');
+        plain.value = [...added][0] || chars[0];
+      } else {
+        plain.value = chars[0];
+      }
+    }
   }
+
+  oldPlain = plain.value;
 
   try {
     const [formatted, _parts, processed] = await encryptText(
@@ -35,6 +51,7 @@ async function onPlainInput() {
     // 回显处理后的文字（如繁体转换结果）
     if (processed !== plain.value) {
       plain.value = processed;
+      oldPlain = processed;
     }
   } catch (e) {
     error.value = String(e);
@@ -57,6 +74,7 @@ async function onCipherInput() {
     try {
       const decrypted = await decryptText(clean.substring(0, 4));
       plain.value = decrypted;
+      oldPlain = decrypted;
     } catch {
       // 解密失败静默处理，可能是输入中
     }
@@ -90,7 +108,7 @@ onMounted(() => {
       </div>
 
       <div class="big-char-area">
-        <input v-model="plain" type="text" class="minimal-input big-char vffqsulc" placeholder="字" maxlength="1"
+        <input v-model="plain" type="text" class="minimal-input big-char vffqsulc" placeholder="字"
           @input="onPlainInput" />
       </div>
 
@@ -160,12 +178,23 @@ onMounted(() => {
 }
 
 @media (max-width: 640px) {
-  .big-char { font-size: 8rem; }
-  .single-card { padding: 1.5rem; }
+  .big-char {
+    font-size: 8rem;
+  }
+
+  .single-card {
+    padding: 1.5rem;
+  }
 }
 
 @media (max-height: 700px) {
-  .big-char { font-size: 6rem; }
-  .single-card { gap: 1rem; padding: 1.5rem; }
+  .big-char {
+    font-size: 6rem;
+  }
+
+  .single-card {
+    gap: 1rem;
+    padding: 1.5rem;
+  }
 }
 </style>
