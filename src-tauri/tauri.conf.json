@@ -15,7 +15,8 @@
         "title": "SuazDct",
         "width": 800,
         "height": 650,
-        "visible": false
+        "visible": false,
+        "center": true
       }
     ],
     "security": {

@@ -81,8 +81,14 @@ async function onCipherInput() {
   }
 }
 
-/** 启动时随机显示一个 CJK 汉字 */
-onMounted(() => {
+/** 密文输入框失去焦点时，若字符数不足 4，则重新加密当前明文以恢复密文 */
+function onCipherBlur() {
+  if (cipher.value.length < 4) {
+    onPlainInput();
+  }
+}
+
+function generateRandomChar() {
   const rangeA = [0x3400, 0x4dbf];
   const rangeBasic = [0x4e00, 0x9fff];
   const countA = rangeA[1] - rangeA[0] + 1;
@@ -96,7 +102,19 @@ onMounted(() => {
 
   plain.value = String.fromCodePoint(randomCodePoint);
   onPlainInput();
+}
+
+/** 启动时随机显示一个 CJK 汉字 */
+onMounted(() => {
+  generateRandomChar();
 });
+
+/** 输入框失去焦点时，如果为空则随机生成一个字 */
+function onPlainBlur() {
+  if (!plain.value) {
+    generateRandomChar();
+  }
+}
 </script>
 
 <template>
@@ -104,12 +122,12 @@ onMounted(() => {
     <div class="single-card">
       <div class="cipher-input-area">
         <input v-model="cipher" type="text" class="minimal-input cipher-text" placeholder="输入4字母密文" maxlength="4"
-          @input="onCipherInput" />
+          @input="onCipherInput" @blur="onCipherBlur" />
       </div>
 
       <div class="big-char-area">
-        <input v-model="plain" type="text" class="minimal-input big-char vffqsulc" placeholder="字"
-          @input="onPlainInput" />
+        <input v-model="plain" type="text" class="minimal-input big-char vffqsulc" placeholder="字" @input="onPlainInput"
+          @blur="onPlainBlur" />
       </div>
 
       <div v-if="error" class="error-toast">{{ error }}</div>
