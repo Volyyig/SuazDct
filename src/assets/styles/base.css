@@ -14,6 +14,12 @@
     user-select: none;
 }
 
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
 body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -40,16 +46,16 @@ select {
 
 
 .vffqsulc {
-  /* 套用剛才定義的名字 */
-  font-family: 'NotoSansTC', sans-serif;
+    /* 套用剛才定義的名字 */
+    font-family: 'NotoSansTC', sans-serif;
 
-  /* 設定一個預設粗細（400 是標準 Regular） */
-  font-weight: 200;
+    /* 設定一個預設粗細（400 是標準 Regular） */
+    font-weight: 200;
 
-  /* 針對舊版引擎的保險寫法（選填，但推薦） */
-  font-variation-settings: 'wght' 200;
+    /* 針對舊版引擎的保險寫法（選填，但推薦） */
+    font-variation-settings: 'wght' 200;
 
-  /* 平滑化字體渲染（在 Tauri/WebView2 上效果很好） */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    /* 平滑化字體渲染（在 Tauri/WebView2 上效果很好） */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
