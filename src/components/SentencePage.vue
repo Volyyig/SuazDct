@@ -231,14 +231,15 @@ saveHistory({ plain: '', cipher: '' });
             </button>
           </div>
         </div>
-        <textarea v-model="cipher" class="pure-textarea vffqsulc" placeholder="输入密文..." rows="4" @input="onCipherInput" />
+        <textarea v-model="cipher" class="pure-textarea vffqsulc" placeholder="输入密文..." rows="4"
+          @input="onCipherInput" />
       </div>
 
       <div v-if="error" class="error-toast">{{ error }}</div>
 
       <!-- 清空按钮 -->
       <button type="button" class="floating-clear-btn" @click="clearAll" @mousedown.prevent title="清空全部"
-        :style="{ transform: `translateY(-${keyboardOffset}px)` }">
+        :disabled="!plain && !cipher" :style="{ transform: `translateY(-${keyboardOffset}px)` }">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 9l4-4m0 4l-4-4" />
@@ -363,17 +364,25 @@ saveHistory({ plain: '', cipher: '' });
 }
 
 @media (hover: hover) {
-  .floating-clear-btn:hover {
+  .floating-clear-btn:hover:not(:disabled) {
     background: var(--accent-hover);
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
   }
 }
 
-.floating-clear-btn:active {
+.floating-clear-btn:active:not(:disabled) {
   transform: translateY(-2px) scale(0.95);
   background: var(--accent-hover);
   box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+}
+
+.floating-clear-btn:disabled {
+  background: var(--border-color);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.7;
 }
 
 .error-toast {
