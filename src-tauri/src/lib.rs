@@ -10,9 +10,12 @@ use commands::crypto::{decrypt_text, encrypt_text};
 use commands::format::format_cipher;
 use commands::window::release_window;
 
+use uniaz::UniAz;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(UniAz::new())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![

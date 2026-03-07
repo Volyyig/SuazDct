@@ -16,12 +16,11 @@ use crate::utils::cipher_format::{format_cipher, preprocess_cipher};
 /// `(格式化密文, 原始部件列表, 处理后的原文)` 三元组
 #[tauri::command]
 pub fn encrypt_text(
+    uni_az: tauri::State<'_, UniAz>,
     plain: &str,
     use_traditional: bool,
     format: &str,
 ) -> Result<(String, Vec<String>, String), String> {
-    let uni_az = UniAz::new();
-
     // 如果启用繁体，先将简体转换为繁体
     let text_to_encrypt = if use_traditional {
         s2t(plain)
@@ -64,9 +63,10 @@ pub fn encrypt_text(
 /// # 参数
 /// - `cipher` - 原始密文字符串（支持各种格式）
 #[tauri::command]
-pub fn decrypt_text(cipher: &str) -> Result<String, String> {
-    let uni_az = UniAz::new();
-
+pub fn decrypt_text(
+    uni_az: tauri::State<'_, UniAz>,
+    cipher: &str
+) -> Result<String, String> {
     // 在后端预处理密文为标准化部件数组
     let parts = preprocess_cipher(cipher);
 
