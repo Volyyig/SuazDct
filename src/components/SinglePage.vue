@@ -23,35 +23,47 @@ async function onPlainInput(event?: Event) {
   }
 
   const chars = [...plain.value];
+  let newText = plain.value;
 
-  // 限制为 1 个字符
+  // 如果字符数 > 1，提取新输入的部分，用于包含上下文的繁体转换
   if (chars.length > 1) {
     const e = event as InputEvent;
     if (e && e.data) {
-      plain.value = [...e.data][0];
+      newText = e.data;
     } else {
       if (oldPlain && plain.value.includes(oldPlain)) {
-        const added = plain.value.replace(oldPlain, '');
-        plain.value = [...added][0] || chars[0];
-      } else {
-        plain.value = chars[0];
+        newText = plain.value.replace(oldPlain, '');
       }
     }
+    if (!newText) {
+      newText = chars.join('');
+    }
+    // 视觉上先截断为取到的第一个字（临时）
+    plain.value = [...newText][0] || chars[0];
   }
 
   oldPlain = plain.value;
 
   try {
-    const [formatted, _parts, processed] = await encryptText(
-      plain.value,
+    // 1. 将包含上下文（如“发行”/“发型”）的完整新输入传给后端计算
+    const [_formatted, partsFull, processedFull] = await encryptText(
+      newText,
       props.settings.traditionalEnabled,
       'space',
     );
-    cipher.value = formatted;
-    // 回显处理后的文字（如繁体转换结果）
-    if (processed !== plain.value) {
-      plain.value = processed;
-      oldPlain = processed;
+
+    // 2. 取后端带上下文转换后的第一个字（如“發” / “髮”）
+    const finalChar = [...processedFull][0] || plain.value;
+
+    // 3. 从 partsFull 提取该单字的密文，无需二次调用后端接口
+    const isChinese = /[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]/.test(finalChar);
+    const finalCipher = isChinese ? (partsFull[0] || finalChar) : finalChar;
+
+    cipher.value = finalCipher;
+    // 回显处理后的文字
+    if (finalChar !== plain.value) {
+      plain.value = finalChar;
+      oldPlain = finalChar;
     }
   } catch (e) {
     error.value = String(e);
