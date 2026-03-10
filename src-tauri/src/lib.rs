@@ -11,11 +11,13 @@ use commands::format::format_cipher;
 use commands::window::release_window;
 
 use uniaz::UniAz;
+use jieba_rs::Jieba;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(UniAz::new())
+        .manage(Jieba::new())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![

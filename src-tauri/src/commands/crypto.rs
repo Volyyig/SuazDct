@@ -1,6 +1,7 @@
 /// 加密与解密 Tauri 命令
-use hanconv::s2t;
+use hanconv::{s2t, t2s};
 use uniaz::UniAz;
+use jieba_rs::Jieba;
 
 use crate::utils::chinese::is_chinese;
 use crate::utils::cipher_format::{format_cipher, preprocess_cipher};
@@ -10,6 +11,7 @@ use crate::utils::cipher_format::{format_cipher, preprocess_cipher};
 /// # 参数
 /// - `plain` - 明文文本
 /// - `use_traditional` - 是否启用繁体转换
+/// - `use_segmentation` - 是否启用分词
 /// - `format` - 密文输出格式（`"space"` | `"4-letter"` | `"first-upper"` | `"pascal"` | `"camel"`）
 ///
 /// # 返回
@@ -17,15 +19,30 @@ use crate::utils::cipher_format::{format_cipher, preprocess_cipher};
 #[tauri::command]
 pub fn encrypt_text(
     uni_az: tauri::State<'_, UniAz>,
+    jieba: tauri::State<'_, Jieba>,
     plain: &str,
     use_traditional: bool,
+    use_segmentation: bool,
     format: &str,
 ) -> Result<(String, Vec<String>, String), String> {
-    // 如果启用繁体，先将简体转换为繁体
-    let text_to_encrypt = if use_traditional {
-        s2t(plain)
+    // 1. 如果启用分词，先转简体再分词，结果用空格拼接
+    let segmented_text = if use_segmentation {
+        let simplified = t2s(plain);
+        let words = jieba.cut(&simplified, false);
+        // 过滤掉仅包含空白字符的 token，防止空格爆炸
+        let filtered_words: Vec<&str> = words.into_iter()
+            .filter(|s| !s.trim().is_empty())
+            .collect();
+        filtered_words.join(" ")
     } else {
         plain.to_string()
+    };
+
+    // 2. 如果启用繁体，将结果转换为繁体
+    let text_to_encrypt = if use_traditional {
+        s2t(&segmented_text)
+    } else {
+        segmented_text
     };
 
     let mut parts = Vec::new();

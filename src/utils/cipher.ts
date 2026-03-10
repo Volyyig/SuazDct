@@ -6,17 +6,20 @@ import type { CipherFormat } from '../types';
  * 加密文本
  * @param plain 明文
  * @param useTraditional 是否启用繁体
+ * @param useSegmentation 是否启用分词
  * @param format 密文格式
  * @returns [格式化密文, 原始部件列表, 处理后的原文]
  */
 export async function encryptText(
     plain: string,
     useTraditional: boolean,
+    useSegmentation: boolean,
     format: CipherFormat,
 ): Promise<[string, string[], string]> {
     return invoke<[string, string[], string]>('encrypt_text', {
         plain,
         useTraditional,
+        useSegmentation,
         format,
     });
 }

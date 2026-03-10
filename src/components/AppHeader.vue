@@ -1,12 +1,13 @@
 <script setup lang="ts">
 /** 顶部标题栏组件 */
 import { ref, onMounted, onUnmounted } from 'vue';
-import type { Settings, ThemeType } from '../types';
+import type { Settings, ThemeType, PageType } from '../types';
 import SettingsMenu from './SettingsMenu.vue';
 
 defineProps<{
   pageTitle: string;
   theme: ThemeType;
+  currentPage: PageType;
 }>();
 
 const emit = defineEmits<{
@@ -68,7 +69,7 @@ onUnmounted(() => {
           </svg>
         </button>
 
-        <SettingsMenu v-if="showSettingsMenu" v-model:settings="settings" />
+        <SettingsMenu v-if="showSettingsMenu" v-model:settings="settings" :current-page="currentPage" />
       </div>
     </div>
   </header>

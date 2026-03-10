@@ -49,6 +49,7 @@ async function onPlainInput(event?: Event) {
     const [_formatted, partsFull, processedFull] = await encryptText(
       newText,
       props.settings.traditionalEnabled,
+      false, // 触发式分词，单字模式不启用
       'space',
     );
 

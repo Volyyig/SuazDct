@@ -33,7 +33,8 @@ onMounted(() => {
 
 <template>
   <div class="app">
-    <AppHeader :page-title="pageTitle" :theme="theme" v-model:settings="settings" @toggle-theme="toggleTheme" />
+    <AppHeader :page-title="pageTitle" :theme="theme" v-model:settings="settings" :current-page="currentPage"
+      @toggle-theme="toggleTheme" />
 
     <main class="content">
       <SinglePage v-show="currentPage === 'single'" :settings="settings" />

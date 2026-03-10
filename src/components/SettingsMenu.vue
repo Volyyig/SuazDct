@@ -1,44 +1,51 @@
 <script setup lang="ts">
 /** 设置下拉菜单组件 */
-import type { Settings } from '../types';
-
+import type { Settings, PageType } from '../types';
+ 
+defineProps<{
+  currentPage: PageType;
+}>();
+ 
 const settings = defineModel<Settings>('settings', { required: true });
 </script>
 
 <template>
   <div class="settings-menu">
     <div class="menu-item">
+      <div class="menu-group-title">全局设置</div>
       <label class="menu-label">
         <input type="checkbox" v-model="settings.traditionalEnabled" class="menu-checkbox" />
         <span class="menu-text">繁体启用</span>
       </label>
     </div>
-    <div class="menu-separator"></div>
-    <div class="menu-item">
-      <div class="menu-group-title">密文格式</div>
-      <div class="radio-group">
-        <label class="radio-label">
-          <input type="radio" v-model="settings.cipherFormat" value="4-letter" class="menu-radio" />
-          <span class="radio-text">默认</span>
-        </label>
-        <label class="radio-label">
-          <input type="radio" v-model="settings.cipherFormat" value="space" class="menu-radio" />
-          <span class="radio-text">空格分割</span>
-        </label>
-        <label class="radio-label">
-          <input type="radio" v-model="settings.cipherFormat" value="first-upper" class="menu-radio" />
-          <span class="radio-text">首字大写</span>
-        </label>
-        <label class="radio-label">
-          <input type="radio" v-model="settings.cipherFormat" value="pascal" class="menu-radio" />
-          <span class="radio-text">大驼峰</span>
-        </label>
-        <label class="radio-label">
-          <input type="radio" v-model="settings.cipherFormat" value="camel" class="menu-radio" />
-          <span class="radio-text">小驼峰</span>
-        </label>
+    <template v-if="currentPage === 'sentence'">
+      <div class="menu-separator"></div>
+      <div class="menu-item">
+        <div class="menu-group-title">密文格式</div>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" v-model="settings.cipherFormat" value="4-letter" class="menu-radio" />
+            <span class="radio-text">默认</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" v-model="settings.cipherFormat" value="space" class="menu-radio" />
+            <span class="radio-text">空格分割</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" v-model="settings.cipherFormat" value="first-upper" class="menu-radio" />
+            <span class="radio-text">首字大写</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" v-model="settings.cipherFormat" value="pascal" class="menu-radio" />
+            <span class="radio-text">大驼峰</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" v-model="settings.cipherFormat" value="camel" class="menu-radio" />
+            <span class="radio-text">小驼峰</span>
+          </label>
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 

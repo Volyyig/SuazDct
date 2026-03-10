@@ -37,12 +37,35 @@ async function encrypt() {
     const [formatted, parts, processed] = await encryptText(
       plain.value,
       props.settings.traditionalEnabled,
+      false, // 自动加密时不执行分词
       props.settings.cipherFormat,
     );
     cipher.value = formatted;
     cachedParts = parts;
     plain.value = processed; // 回显繁体
     saveHistory({ plain: plain.value, cipher: cipher.value });
+  } catch (e) {
+    error.value = String(e);
+  }
+}
+
+/** 触发手动分词并加密 */
+async function handleSegment() {
+  error.value = '';
+  if (!plain.value.trim()) return;
+
+  try {
+    const [formatted, parts, processed] = await encryptText(
+      plain.value,
+      props.settings.traditionalEnabled,
+      true, // 手动触发分词
+      props.settings.cipherFormat,
+    );
+    cipher.value = formatted;
+    cachedParts = parts;
+    plain.value = processed;
+    saveHistory({ plain: plain.value, cipher: cipher.value });
+    showToast('已分词');
   } catch (e) {
     error.value = String(e);
   }
@@ -159,6 +182,18 @@ saveHistory({ plain: '', cipher: '' });
         <div class="card-header">
           <span class="card-title">原文</span>
           <div class="card-actions">
+            <button @click="handleSegment" :disabled="!plain" class="text-btn" :class="{ disabled: !plain }"
+              title="分词">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="6" cy="6" r="3" />
+                <circle cx="6" cy="18" r="3" />
+                <line x1="20" y1="4" x2="8.12" y2="15.88" />
+                <line x1="14.47" y1="14.48" x2="20" y2="20" />
+                <line x1="8.12" y1="8.12" x2="12" y2="12" />
+              </svg>
+            </button>
+            <div class="action-separator"></div>
             <button @click="handleUndo" :disabled="!canUndo()" class="text-btn" :class="{ disabled: !canUndo() }"
               title="撤销">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -396,14 +431,11 @@ saveHistory({ plain: '', cipher: '' });
   text-align: center;
 }
 
-.error-toast {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 0.5rem;
-  color: var(--error-color);
-  font-size: 0.875rem;
-  text-align: center;
+.action-separator {
+  width: 1.5px;
+  height: 1.2rem;
+  background-color: var(--border-color);
+  align-self: center;
+  margin: 0 0.1rem;
 }
 </style>
