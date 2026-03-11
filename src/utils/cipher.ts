@@ -1,6 +1,6 @@
 /** Tauri 后端调用封装 */
-import { invoke } from '@tauri-apps/api/core';
 import type { CipherFormat } from '../types';
+import { invoke } from '@tauri-apps/api/core';
 
 /**
  * 加密文本
@@ -44,7 +44,4 @@ export async function formatCipher(
     return invoke<string>('format_cipher', { parts, format });
 }
 
-/** 显示主窗口（桌面端） */
-export async function releaseWindow(): Promise<void> {
-    return invoke('release_window');
-}
+

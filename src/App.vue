@@ -8,7 +8,7 @@
 import { computed, ref, onMounted } from 'vue';
 import { useSettings } from './composables/useSettings';
 import { useKeyboardOffset } from './composables/useKeyboardOffset';
-import { releaseWindow } from './utils/cipher';
+import { releaseWindow } from './utils/window';
 
 import AppHeader from './components/AppHeader.vue';
 import BottomNav from './components/BottomNav.vue';
