@@ -25,7 +25,7 @@ withDefaults(defineProps<{
 <style scoped>
 .toast-feedback {
   position: fixed;
-  bottom: 120px;
+  bottom: calc(120px + env(safe-area-inset-bottom));
   left: 50%;
   background: rgba(0, 0, 0, 0.8);
   color: white;
