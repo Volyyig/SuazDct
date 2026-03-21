@@ -14,7 +14,7 @@ const emit = defineEmits<{
 <template>
   <nav class="bottom-nav">
     <button type="button" class="nav-btn" :class="{ active: currentPage === 'single' }"
-      @click="emit('update:currentPage', 'single')">
+      @click="emit('update:currentPage', 'single')" tabindex="-1">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4 7h16M4 12h16M4 17h16" />
@@ -22,7 +22,7 @@ const emit = defineEmits<{
       <span class="nav-label">单字</span>
     </button>
     <button type="button" class="nav-btn" :class="{ active: currentPage === 'sentence' }"
-      @click="emit('update:currentPage', 'sentence')">
+      @click="emit('update:currentPage', 'sentence')" tabindex="-1">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
