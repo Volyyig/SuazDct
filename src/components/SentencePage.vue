@@ -224,7 +224,8 @@ saveHistory({ plain: '', cipher: '' });
             </button>
           </div>
         </div>
-        <textarea v-model="plain" class="pure-textarea vffqsulc" placeholder="输入原文..." rows="4" @input="onPlainInput" />
+        <textarea v-model="plain" class="pure-textarea vffqsulc" placeholder="输入原文..." rows="4" @input="onPlainInput"
+          @keydown.ctrl.q.prevent="plain = ''; onPlainInput()" />
       </div>
 
       <!-- 密文区 -->
@@ -264,8 +265,8 @@ saveHistory({ plain: '', cipher: '' });
             </button>
           </div>
         </div>
-        <textarea v-model="cipher" class="pure-textarea vffqsulc" placeholder="输入密文..." rows="4"
-          @input="onCipherInput" />
+        <textarea v-model="cipher" class="pure-textarea vffqsulc" placeholder="输入密文..." rows="4" @input="onCipherInput"
+          @keydown.ctrl.q.prevent="cipher = ''; onCipherInput()" />
       </div>
 
       <div v-if="error" class="error-toast">{{ error }}</div>

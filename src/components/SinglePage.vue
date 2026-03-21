@@ -135,12 +135,12 @@ function onPlainBlur() {
     <div class="single-card">
       <div class="cipher-input-area">
         <input v-model="cipher" type="text" class="minimal-input cipher-text" placeholder="输入4字母密文" maxlength="4"
-          @input="onCipherInput" @blur="onCipherBlur" />
+          @input="onCipherInput" @blur="onCipherBlur" @keydown.ctrl.q.prevent="cipher = ''; onCipherInput()" />
       </div>
 
       <div class="big-char-area">
         <input v-model="plain" type="text" class="minimal-input big-char vffqsulc" placeholder="字" @input="onPlainInput"
-          @blur="onPlainBlur" />
+          @blur="onPlainBlur" @keydown.ctrl.q.prevent="plain = ''; onPlainInput()" />
       </div>
 
       <div v-if="error" class="error-toast">{{ error }}</div>
