@@ -225,7 +225,13 @@ saveHistory({ plain: '', cipher: '' });
           </div>
         </div>
         <textarea v-model="plain" class="pure-textarea vffqsulc" placeholder="输入原文..." rows="4" @input="onPlainInput"
-          @keydown.ctrl.q.prevent="plain = ''; onPlainInput()" />
+          @keydown.ctrl.q.exact.prevent="clearAll(); saveHistory({ plain: '', cipher: '' })"
+          @keydown.ctrl.z.exact.prevent="handleUndo" 
+          @keydown.ctrl.y.exact.prevent="handleRedo"
+          @keydown.ctrl.shift.z.exact.prevent="handleRedo"
+          @keydown.meta.q.exact.prevent="clearAll(); saveHistory({ plain: '', cipher: '' })"
+          @keydown.meta.z.exact.prevent="handleUndo"
+          @keydown.meta.shift.z.exact.prevent="handleRedo" />
       </div>
 
       <!-- 密文区 -->
@@ -266,7 +272,13 @@ saveHistory({ plain: '', cipher: '' });
           </div>
         </div>
         <textarea v-model="cipher" class="pure-textarea vffqsulc" placeholder="输入密文..." rows="4" @input="onCipherInput"
-          @keydown.ctrl.q.prevent="cipher = ''; onCipherInput()" />
+          @keydown.ctrl.q.exact.prevent="clearAll(); saveHistory({ plain: plain, cipher: '' })"
+          @keydown.ctrl.z.exact.prevent="handleUndo" 
+          @keydown.ctrl.y.exact.prevent="handleRedo"
+          @keydown.ctrl.shift.z.exact.prevent="handleRedo"
+          @keydown.meta.q.exact.prevent="clearAll(); saveHistory({ plain: plain, cipher: '' })"
+          @keydown.meta.z.exact.prevent="handleUndo"
+          @keydown.meta.shift.z.exact.prevent="handleRedo" />
       </div>
 
       <div v-if="error" class="error-toast">{{ error }}</div>
