@@ -166,7 +166,7 @@ async function openZiTools() {
 
       <!-- 字典查询按钮 -->
       <button type="button" class="floating-dict-btn" @click="openZiTools" @mousedown.prevent title="在字统网查询"
-        :disabled="!plain" :style="{ transform: `translateY(-${keyboardOffset}px)` }" tabindex="-1">
+        :class="{ disabled: !plain }" :style="{ transform: `translateY(-${keyboardOffset}px)` }" tabindex="-1">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
@@ -283,20 +283,20 @@ async function openZiTools() {
 }
 
 @media (hover: hover) {
-  .floating-dict-btn:hover:not(:disabled) {
+  .floating-dict-btn:hover:not(.disabled) {
     background: #059669;
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
   }
 }
 
-.floating-dict-btn:active:not(:disabled) {
+.floating-dict-btn:active:not(.disabled) {
   transform: translateY(-2px) scale(0.95);
   background: #059669;
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
 }
 
-.floating-dict-btn:disabled {
+.floating-dict-btn.disabled {
   background: var(--border-color);
   color: var(--text-secondary);
   cursor: not-allowed;
