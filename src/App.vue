@@ -37,7 +37,7 @@ onMounted(() => {
       @toggle-theme="toggleTheme" />
 
     <main class="content">
-      <SinglePage v-show="currentPage === 'single'" :settings="settings" />
+      <SinglePage v-show="currentPage === 'single'" :settings="settings" :keyboard-offset="keyboardOffset" />
       <SentencePage v-show="currentPage === 'sentence'" :settings="settings" :keyboard-offset="keyboardOffset" />
     </main>
 

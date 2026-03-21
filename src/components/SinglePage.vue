@@ -1,17 +1,23 @@
 <script setup lang="ts">
 /** 单字加解密页面组件 */
 import { ref, onMounted } from 'vue';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import type { Settings } from '../types';
 import { encryptText, decryptText } from '../utils/cipher';
+import { useToast } from '../composables/useToast';
+import ToastFeedback from './ToastFeedback.vue';
 
 const props = defineProps<{
   settings: Settings;
+  keyboardOffset: number;
 }>();
 
 const plain = ref('');
 const cipher = ref('');
 const error = ref('');
 let oldPlain = '';
+
+const { showToast, toastMessage, toastVisible, toastType } = useToast();
 
 /** 处理原文输入 —— 加密单个汉字 */
 async function onPlainInput(event?: Event) {
@@ -128,6 +134,17 @@ function onPlainBlur() {
     generateRandomChar();
   }
 }
+
+/** 打开字统网查询 */
+async function openZiTools() {
+  if (!plain.value) return;
+  const url = `https://zi.tools/zi/${encodeURIComponent(plain.value)}`;
+  try {
+    await openUrl(url);
+  } catch (e) {
+    showToast('无法打开浏览器: ' + String(e), 'error');
+  }
+}
 </script>
 
 <template>
@@ -135,20 +152,31 @@ function onPlainBlur() {
     <div class="single-card">
       <div class="cipher-input-area">
         <input v-model="cipher" type="text" class="minimal-input cipher-text" placeholder="输入4字母密文" maxlength="4"
-          @input="onCipherInput" @blur="onCipherBlur" 
-          @keydown.ctrl.q.exact.prevent="cipher = ''; onCipherInput()"
+          @input="onCipherInput" @blur="onCipherBlur" @keydown.ctrl.q.exact.prevent="cipher = ''; onCipherInput()"
           @keydown.meta.q.exact.prevent="cipher = ''; onCipherInput()" />
       </div>
 
       <div class="big-char-area">
         <input v-model="plain" type="text" class="minimal-input big-char vffqsulc" placeholder="字" @input="onPlainInput"
-          @blur="onPlainBlur" 
-          @keydown.ctrl.q.exact.prevent="plain = ''; onPlainInput()"
+          @blur="onPlainBlur" @keydown.ctrl.q.exact.prevent="plain = ''; onPlainInput()"
           @keydown.meta.q.exact.prevent="plain = ''; onPlainInput()" />
       </div>
 
       <div v-if="error" class="error-toast">{{ error }}</div>
+
+      <!-- 字典查询按钮 -->
+      <button type="button" class="floating-dict-btn" @click="openZiTools" @mousedown.prevent title="在字统网查询"
+        :disabled="!plain" :style="{ transform: `translateY(-${keyboardOffset}px)` }" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </svg>
+      </button>
     </div>
+
+    <!-- 页面级 Toast -->
+    <ToastFeedback :message="toastMessage" :visible="toastVisible" :type="toastType" :keyboard-offset="keyboardOffset" />
   </div>
 </template>
 
@@ -157,8 +185,10 @@ function onPlainBlur() {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
+  padding-top: 15vh;
+  position: relative;
 }
 
 .single-card {
@@ -231,5 +261,46 @@ function onPlainBlur() {
     gap: 1rem;
     padding: 1.5rem;
   }
+}
+
+.floating-dict-btn {
+  position: fixed;
+  bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  right: 1.5rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: #10b981;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  z-index: 100;
+}
+
+@media (hover: hover) {
+  .floating-dict-btn:hover:not(:disabled) {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+  }
+}
+
+.floating-dict-btn:active:not(:disabled) {
+  transform: translateY(-2px) scale(0.95);
+  background: #059669;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+}
+
+.floating-dict-btn:disabled {
+  background: var(--border-color);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.7;
 }
 </style>
