@@ -81,11 +81,16 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  padding-top: max(1rem, env(safe-area-inset-top));
   border-bottom: 1px solid var(--border-color);
   background: var(--surface-color);
   z-index: 50;
   position: relative;
+}
+
+@media (max-width: 768px) {
+  .top-bar {
+    padding-top: calc(env(safe-area-inset-top) + 0.5rem);
+  }
 }
 
 .settings-container {
