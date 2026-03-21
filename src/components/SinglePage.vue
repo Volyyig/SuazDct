@@ -169,8 +169,8 @@ async function openZiTools() {
         :class="{ disabled: !plain }" :style="{ transform: `translateY(-${keyboardOffset}px)` }" tabindex="-1">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
         </svg>
       </button>
     </div>
@@ -270,10 +270,10 @@ async function openZiTools() {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 50%;
-  background: #10b981;
+  background: #8b5cf6;
   color: white;
   border: none;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -284,16 +284,16 @@ async function openZiTools() {
 
 @media (hover: hover) {
   .floating-dict-btn:hover:not(.disabled) {
-    background: #059669;
+    background: #7c3aed;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+    box-shadow: 0 6px 16px rgba(139, 92, 246, 0.5);
   }
 }
 
 .floating-dict-btn:active:not(.disabled) {
   transform: translateY(-2px) scale(0.95);
-  background: #059669;
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+  background: #7c3aed;
+  box-shadow: 0 6px 16px rgba(139, 92, 246, 0.5);
 }
 
 .floating-dict-btn.disabled {
