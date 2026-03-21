@@ -97,7 +97,10 @@ function onPlainInput() {
 
 /** 密文输入事件（防抖触发解密） */
 function onCipherInput() {
-  if (!cipher.value.trim()) return;
+  if (!cipher.value.trim()) {
+    plain.value = '';
+    return;
+  };
   if (timer) clearTimeout(timer);
   timer = window.setTimeout(decrypt, 100);
 }
@@ -284,7 +287,7 @@ saveHistory({ plain: '', cipher: '' });
       <div v-if="error" class="error-toast">{{ error }}</div>
 
       <!-- 清空按钮 -->
-      <button type="button" class="floating-clear-btn" @click="clearAll" @mousedown.prevent title="清空全部"
+      <button type="button" class="floating-clear-btn" @click="clearAll" @mousedown.prevent title="清空全部(Ctrl+Q)"
         :disabled="!plain && !cipher" :style="{ transform: `translateY(-${keyboardOffset}px)` }" tabindex="-1">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
