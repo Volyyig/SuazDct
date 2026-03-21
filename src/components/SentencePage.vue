@@ -13,7 +13,7 @@ const props = defineProps<{
   keyboardOffset: number;
 }>();
 
-const { showToast, toastMessage, toastVisible } = useToast();
+const { showToast, toastMessage, toastVisible, toastType } = useToast();
 
 const plain = ref('');
 const cipher = ref('');
@@ -141,14 +141,14 @@ function handleRedo() {
 async function handleCopy(text: string) {
   if (!text) return;
   const ok = await copy(text);
-  showToast(ok ? '已复制' : '复制失败');
+  showToast(ok ? '已复制' : '复制失败', ok ? 'info' : 'error');
 }
 
 /** 粘贴文本 */
 async function handlePaste(type: 'plain' | 'cipher') {
   const text = await paste();
   if (text === null) {
-    error.value = '粘贴失败';
+    showToast('粘贴失败', 'error');
     return;
   }
   if (type === 'plain') {
@@ -299,7 +299,7 @@ saveHistory({ plain: '', cipher: '' });
     </div>
 
     <!-- 页面级 Toast -->
-    <ToastFeedback :message="toastMessage" :visible="toastVisible" :keyboard-offset="keyboardOffset" />
+    <ToastFeedback :message="toastMessage" :visible="toastVisible" :type="toastType" :keyboard-offset="keyboardOffset" />
   </div>
 </template>
 

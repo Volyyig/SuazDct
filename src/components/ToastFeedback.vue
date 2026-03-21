@@ -1,17 +1,21 @@
 <script setup lang="ts">
 /** Toast 反馈提示组件 */
+import type { ToastType } from '../composables/useToast';
+
 withDefaults(defineProps<{
   message: string;
   visible: boolean;
+  type?: ToastType;
   keyboardOffset?: number;
 }>(), {
+  type: 'info',
   keyboardOffset: 0
 });
 </script>
 
 <template>
   <Transition name="toast-fade">
-    <div v-if="visible" class="toast-feedback"
+    <div v-if="visible" class="toast-feedback" :class="type"
       :style="{ transform: `translateX(-50%) translateY(-${keyboardOffset}px)` }">
       {{ message }}
     </div>
@@ -34,8 +38,18 @@ withDefaults(defineProps<{
   transition: transform 0.3s ease;
 }
 
+/* 错误类型样式 */
+.toast-feedback.error {
+  background: rgba(239, 68, 68, 0.9);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
 [data-theme="light"] .toast-feedback {
   background: rgba(0, 0, 0, 0.75);
+}
+
+[data-theme="light"] .toast-feedback.error {
+  background: rgba(239, 68, 68, 0.9);
 }
 
 .toast-fade-enter-active,
